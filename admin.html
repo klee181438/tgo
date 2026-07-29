@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>True Grit — Admin Console</title>
+<style>
+:root{--charcoal:#1f2429;--red:#c8382e;--red-dk:#a12b23;--steel:#3d4752;--ink:#1f2429;--mute:#697585;--line:#d9dee4;--bg:#eef1f4;--panel:#fff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45}
+.hidden{display:none!important}
+button{font-family:inherit;cursor:pointer;border:none}
+input{font-family:inherit;font-size:15px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 18px;border-radius:10px;font-weight:800;font-size:15px;transition:.15s;background:var(--steel);color:#fff}
+.btn:hover{filter:brightness(1.07)}
+.btn-red{background:linear-gradient(160deg,var(--red),var(--red-dk))}
+.btn-ghost{background:#fff;color:var(--ink);border:1.5px solid var(--line)}
+.btn-sm{padding:7px 12px;font-size:13px;border-radius:8px}
+.btn-block{width:100%}
+.field{margin-bottom:14px;text-align:left}
+.field label{display:block;font-size:12.5px;font-weight:700;color:var(--mute);margin-bottom:6px;letter-spacing:.2px}
+.field input{width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:10px;background:#fbfcfd;color:var(--ink)}
+.field input:focus{outline:none;border-color:var(--red);background:#fff}
+/* login */
+.gate{min-height:100vh;display:grid;place-items:center;background:radial-gradient(1200px 500px at 50% -10%,#2b3138,#1a1e23)}
+.gate .box{background:#fff;border-radius:18px;padding:34px 30px;width:100%;max-width:400px;box-shadow:0 12px 40px rgba(20,28,38,.18);text-align:center}
+.mark{width:60px;height:60px;border-radius:14px;background:linear-gradient(150deg,var(--red),var(--red-dk));display:grid;place-items:center;font-weight:900;font-size:24px;color:#fff;margin:0 auto 16px}
+.msg{font-size:13px;margin-top:12px;min-height:18px}
+.msg.err{color:var(--red-dk)} .msg.ok{color:#2e7d5a}
+.link{color:var(--red-dk);font-weight:700;cursor:pointer;background:none;font-size:13.5px;text-decoration:underline}
+/* console */
+.topbar{background:var(--charcoal);color:#fff;display:flex;align-items:center;gap:14px;padding:12px 20px;position:sticky;top:0;z-index:10}
+.topbar .mark{width:38px;height:38px;font-size:16px;border-radius:9px;margin:0}
+.brand{font-weight:900;font-size:16px}.brand small{display:block;font-size:9.5px;letter-spacing:1.5px;color:#9aa7b4;font-weight:700}
+.spacer{flex:1}
+.who{font-size:13px;color:#c8d2dc}
+.wrap{max-width:1000px;margin:0 auto;padding:24px 20px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 3px rgba(20,28,38,.06);margin-bottom:20px}
+.card-pad{padding:20px 22px}
+h2{font-size:20px;margin:0 0 4px}
+.sub{color:var(--mute);font-size:13.5px;margin:0 0 16px}
+.row{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end}
+@media(max-width:640px){.row{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--mute);padding:8px 10px;border-bottom:2px solid var(--line)}
+td{padding:11px 10px;border-bottom:1px solid var(--line);font-size:14px;vertical-align:middle}
+.pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:800}
+.pill.active{background:#e6f4ec;color:#2e7d5a}.pill.suspended{background:#fdeceb;color:var(--red-dk)}
+.slug{color:var(--mute);font-size:12px;font-family:ui-monospace,monospace}
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--charcoal);color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:600;box-shadow:0 8px 30px rgba(0,0,0,.3);opacity:0;transition:.25s;z-index:50}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<div id="login" class="gate">
+  <div class="box">
+    <div class="mark">TG</div>
+    <h2 style="font-size:21px" id="loginTitle">Admin Console</h2>
+    <p class="sub" id="loginSub">Sign in to manage contractors</p>
+    <div class="field"><label>Email</label><input id="email" type="email" autocomplete="username" placeholder="you@company.com"></div>
+    <div class="field"><label>Password</label><input id="password" type="password" autocomplete="current-password" placeholder="Your password" onkeydown="if(event.key==='Enter')window.__submit()"></div>
+    <button class="btn btn-red btn-lg btn-block" id="submitBtn" onclick="window.__submit()">Sign in</button>
+    <div class="msg" id="msg"></div>
+    <div style="margin-top:10px"><button class="link" id="toggleMode" onclick="window.__toggle()">New here? Create your account</button></div>
+  </div>
+</div>
+
+<div id="denied" class="gate hidden">
+  <div class="box">
+    <div class="mark">TG</div>
+    <h2 style="font-size:20px">No admin access</h2>
+    <p class="sub">You're signed in as <b id="whoDenied"></b>, but this account isn't a platform admin. The tech app is at your shop link.</p>
+    <button class="btn btn-ghost btn-block" onclick="window.__signout()">Sign out</button>
+  </div>
+</div>
+
+<div id="console" class="hidden">
+  <div class="topbar">
+    <div class="mark">TG</div>
+    <div class="brand">True Grit Options<small>ADMIN CONSOLE</small></div>
+    <div class="spacer"></div>
+    <div class="who" id="who"></div>
+    <button class="btn btn-ghost btn-sm" onclick="window.__signout()">Sign out</button>
+  </div>
+  <div class="wrap">
+    <div class="card"><div class="card-pad">
+      <h2>Add a contractor</h2>
+      <p class="sub">Creates an isolated shop with a copy of the True Grit starter book, and emails the owner an invite to set their password.</p>
+      <div class="row">
+        <div class="field" style="margin:0"><label>Shop name</label><input id="cName" placeholder="e.g. Acme Plumbing"></div>
+        <div class="field" style="margin:0"><label>Owner email (optional)</label><input id="cEmail" type="email" placeholder="owner@acme.com"></div>
+        <button class="btn btn-red" id="addBtn" onclick="window.__add()">Add contractor</button>
+      </div>
+    </div></div>
+    <div class="card"><div class="card-pad">
+      <h2>Contractors</h2>
+      <p class="sub" id="listSub">Loading…</p>
+      <div style="overflow-x:auto"><table id="tbl"><thead><tr><th>Shop</th><th>Status</th><th>Added</th><th style="text-align:right">Actions</th></tr></thead><tbody id="rows"></tbody></table></div>
+    </div></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const SUPABASE_URL='https://wctpjtfvdhfejrkiiwdw.supabase.co';
+const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndjdHBqdGZ2ZGhmZWpya2lpd2R3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODMwNTYsImV4cCI6MjEwMDg1OTA1Nn0.2zGJnixNVu7bRs4Ryb28M4Ntbdt_dBJ_oHOt7gPSoAg';
+const FN=SUPABASE_URL+'/functions/v1/admin';
+const sb=createClient(SUPABASE_URL,SUPABASE_ANON);
+let mode='signin';
+
+const $=s=>document.querySelector(s);
+function show(v){ for(const id of ['login','denied','console']) $('#'+id).classList.toggle('hidden', id!==v); }
+function msg(t,ok){ const m=$('#msg'); m.textContent=t||''; m.className='msg '+(ok?'ok':'err'); }
+let toastT;
+function toast(t){ const el=$('#toast'); el.textContent=t; el.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('show'),2600); }
+function fmtDate(s){ if(!s) return '—'; const d=new Date(s); return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}); }
+
+async function callFn(payload){
+  const { data:{ session } }=await sb.auth.getSession();
+  const token=session?.access_token;
+  const r=await fetch(FN,{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+token,'apikey':SUPABASE_ANON},body:JSON.stringify(payload)});
+  let data={}; try{ data=await r.json(); }catch(e){}
+  return { status:r.status, data };
+}
+
+window.__toggle=function(){
+  mode = mode==='signin'?'signup':'signin';
+  $('#loginTitle').textContent = mode==='signin'?'Admin Console':'Create account';
+  $('#loginSub').textContent = mode==='signin'?'Sign in to manage contractors':'Set up your admin login';
+  $('#submitBtn').textContent = mode==='signin'?'Sign in':'Create account';
+  $('#password').setAttribute('autocomplete', mode==='signin'?'current-password':'new-password');
+  $('#toggleMode').textContent = mode==='signin'?'New here? Create your account':'Have an account? Sign in';
+  msg('');
+};
+
+window.__submit=async function(){
+  const email=$('#email').value.trim().toLowerCase();
+  const password=$('#password').value;
+  if(!email||!password){ msg('Enter your email and password.'); return; }
+  $('#submitBtn').textContent='…';
+  if(mode==='signin'){
+    const { error }=await sb.auth.signInWithPassword({ email, password });
+    if(error){ msg(error.message); $('#submitBtn').textContent='Sign in'; return; }
+    boot();
+  } else {
+    const { data, error }=await sb.auth.signUp({ email, password });
+    if(error){ msg(error.message); $('#submitBtn').textContent='Create account'; return; }
+    if(data.session){ boot(); }
+    else { msg('Account created — check your email to confirm, then sign in.', true); $('#submitBtn').textContent='Create account'; window.__toggle(); }
+  }
+};
+
+window.__signout=async function(){ await sb.auth.signOut(); location.reload(); };
+
+window.__add=async function(){
+  const name=$('#cName').value.trim();
+  const ownerEmail=$('#cEmail').value.trim();
+  if(!name){ toast('Enter a shop name'); return; }
+  $('#addBtn').textContent='Adding…';
+  const { status, data }=await callFn({ action:'create_tenant', name, ownerEmail });
+  $('#addBtn').textContent='Add contractor';
+  if(status!==200){ toast('Error: '+(data.error||status)); return; }
+  $('#cName').value=''; $('#cEmail').value='';
+  const invMsg = data.invite && data.invite.invited ? ' — invite sent to '+data.invite.invited : (data.invite && data.invite.error ? ' (invite issue: '+data.invite.error+')' : '');
+  toast('Added '+name+invMsg);
+  loadTenants();
+};
+
+window.__setStatus=async function(id,status){
+  const { status:s, data }=await callFn({ action:'set_status', tenantId:id, status });
+  if(s!==200){ toast('Error: '+(data.error||s)); return; }
+  toast(status==='active'?'Reactivated':'Suspended');
+  loadTenants();
+};
+
+async function loadTenants(){
+  const { status, data }=await callFn({ action:'list' });
+  if(status!==200){ $('#listSub').textContent='Could not load ('+(data.error||status)+').'; return; }
+  const list=data.tenants||[];
+  $('#listSub').textContent = list.length+' shop'+(list.length===1?'':'s')+' in the system.';
+  const rows=$('#rows'); rows.innerHTML='';
+  for(const t of list){
+    const tr=document.createElement('tr');
+    const susp = t.status==='suspended';
+    tr.innerHTML='<td><b>'+esc(t.name)+'</b><div class="slug">'+esc(t.slug||'')+'</div></td>'
+      +'<td><span class="pill '+(susp?'suspended':'active')+'">'+(susp?'Suspended':'Active')+'</span></td>'
+      +'<td>'+fmtDate(t.created_at)+'</td>'
+      +'<td style="text-align:right"></td>';
+    const act=tr.lastElementChild;
+    const btn=document.createElement('button');
+    btn.className='btn btn-ghost btn-sm';
+    btn.textContent= susp?'Reactivate':'Suspend';
+    btn.onclick=()=>window.__setStatus(t.id, susp?'active':'suspended');
+    act.appendChild(btn);
+    rows.appendChild(tr);
+  }
+}
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function boot(){
+  const { data:{ session } }=await sb.auth.getSession();
+  if(!session){ show('login'); return; }
+  const { data:prof }=await sb.from('profiles').select('role,email').eq('id',session.user.id).single();
+  if(prof && prof.role==='superadmin'){ $('#who').textContent=prof.email||session.user.email; show('console'); loadTenants(); }
+  else { $('#whoDenied').textContent=session.user.email; show('denied'); }
+}
+boot();
+</script>
+</body>
+</html>
