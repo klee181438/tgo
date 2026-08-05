@@ -200,7 +200,7 @@ h1,h2,h3,h4{margin:0;line-height:1.2}
 
 <div id="app" class="hidden">
   <div class="topbar">
-    <div class="brand"><div class="mark">TG</div><div class="bt">True Grit Options<small>JOB BUILDER</small></div></div>
+    <div class="brand"><div class="mark" id="brandMark">TG</div><div class="bt" id="brandName">True Grit Options<small>JOB BUILDER</small></div></div>
     <div class="topnav" id="topnav"></div>
     <div class="company-pill" id="companyPill"><span class="dot"></span><span id="companyName">—</span></div>
   </div>
@@ -733,6 +733,9 @@ function renderNav(){
   if(ROLE==='master') tabs.push(['master','Master',ICO.build]);
   document.getElementById('topnav').innerHTML=tabs.map(([id,l,ic])=>`<button class="${TAB===id?'active':''}" onclick="go('${id}')">${ic}<span>${l}</span></button>`).join('')+`<button onclick="logout()" title="Sign out">${ICO.out}</button>`;
   document.getElementById('companyName').textContent=co().name;
+  { const s=co().settings||{}; const ini=(co().name||'?').split(/\s+/).filter(Boolean).map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const bm=document.getElementById('brandMark'); if(bm){ if(s.logo){ bm.innerHTML='<img src="'+s.logo+'" alt="logo" style="width:100%;height:100%;object-fit:contain">'; bm.style.background='#fff'; bm.style.padding='3px'; } else { bm.textContent=ini||'TG'; bm.style.background=''; bm.style.padding=''; } }
+    const bn=document.getElementById('brandName'); if(bn) bn.innerHTML=esc(co().name)+'<small>JOB BUILDER</small>'; }
 }
 function go(t){ TAB=t; render(); window.scrollTo(0,0); }
 function render(){ const v=document.getElementById('view');
@@ -919,6 +922,7 @@ function renderReceipt(){
   const grad=t.gold?`linear-gradient(120deg,${t.color},#3a4048)`:`linear-gradient(120deg,${t.color},${shade(t.color,-16)})`;
   return `<div class="receipt">
     <div class="r-hero" style="background:${grad}">
+      ${s.logo?`<div style="display:inline-block;background:rgba(255,255,255,.92);border-radius:9px;padding:5px 9px;margin-bottom:10px"><img src="${s.logo}" style="height:26px;max-width:150px;object-fit:contain;display:block"></div>`:''}
       <div class="rt">${esc(c.name)} · Agreed Scope</div>
       <div class="rn">${esc(t.name)}</div>
       <div class="rp">${fmt(total)}</div>
@@ -1024,6 +1028,19 @@ function renderAdmin(){
   const c=co(),s=c.settings;
   return `
   <div class="page-head"><h2>Pricing</h2><p>These rates power your on-the-fly custom tasks and the option builder. Editing <b>${esc(c.name)}</b>.</p></div>
+  <div class="card card-pad">
+    <div class="section-title">Branding — your logo</div>
+    <p class="mini" style="margin:-4px 0 12px">Shows in the app header and on the customer receipt. Each shop has its own — licensees upload theirs right here.</p>
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <div style="width:64px;height:64px;border-radius:14px;overflow:hidden;display:grid;place-items:center;border:1px solid var(--line);${s.logo?'background:#fff;padding:4px':'background:linear-gradient(150deg,var(--red),var(--red-dk))'}">${s.logo?`<img src="${s.logo}" style="width:100%;height:100%;object-fit:contain">`:`<span style="color:#fff;font-weight:900;font-size:22px">${esc((c.name||'?').split(/\s+/).filter(Boolean).map(w=>w[0]).join('').slice(0,2).toUpperCase())}</span>`}</div>
+      <div>
+        <input type="file" id="logoInput" accept="image/*" style="display:none" onchange="onLogoPick(this)">
+        <button class="btn btn-red btn-sm" onclick="document.getElementById('logoInput').click()">${s.logo?'Replace logo':'Upload logo'}</button>
+        ${s.logo?`<button class="btn btn-ghost btn-sm" style="margin-left:8px" onclick="removeLogo()">Remove</button>`:''}
+        <div class="hint" style="margin-top:6px">PNG with a transparent background looks best. Resized automatically.</div>
+      </div>
+    </div>
+  </div>
   <div class="stat-grid" style="margin-bottom:22px">
     <div class="stat"><div class="sv">${fmt(s.laborRate)}</div><div class="sl">Labor rate / hr (custom tasks)</div></div>
     <div class="stat"><div class="sv">${s.useSliding?'Sliding':s.flatMarkup+'%'}</div><div class="sl">Materials markup</div></div>
@@ -1107,6 +1124,19 @@ async function inviteMember(){ const el=document.getElementById('tmEmail'); cons
     else { if(st)st.textContent='Error: '+(d.error||r.status); }
   }catch(e){ if(st)st.textContent='Error: '+e; }
 }
+function onLogoPick(input){ const f=input.files&&input.files[0]; if(!f){return;}
+  if(f.size>6*1024*1024){ toast('Image too large (max 6MB)'); input.value=''; return; }
+  const rd=new FileReader();
+  rd.onload=e=>{ const src=e.target.result;
+    if(f.type==='image/svg+xml'){ co().settings.logo=src; saveState(); render(); toast('Logo saved'); return; }
+    const img=new Image();
+    img.onload=()=>{ let w=img.width,h=img.height; if(!w||!h){ toast('Could not read image'); return; } const max=240, sc=Math.min(1,max/Math.max(w,h)); w=Math.max(1,Math.round(w*sc)); h=Math.max(1,Math.round(h*sc)); const cv=document.createElement('canvas'); cv.width=w; cv.height=h; const cx=cv.getContext('2d'); cx.clearRect(0,0,w,h); cx.drawImage(img,0,0,w,h); let data; try{ data=cv.toDataURL('image/png'); }catch(err){ toast('Image error'); return; } co().settings.logo=data; saveState(); render(); toast('Logo saved'); };
+    img.onerror=()=>toast('Could not read that image');
+    img.src=src;
+  };
+  rd.readAsDataURL(f);
+}
+function removeLogo(){ if(co().settings) delete co().settings.logo; saveState(); render(); toast('Logo removed'); }
 function setS(k,v){ const s=co().settings;
   if(k==='showMonthly'||k==='useSliding'||k==='enforceOrder') s[k]=(v==='1'||v===true);
   else if(k==='numOptions'){ s.numOptions=parseInt(v); s.spread=linspace(0.3,0.92,s.numOptions); ensureTiers(co(),s.numOptions); }
