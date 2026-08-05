@@ -192,6 +192,7 @@ async function loadTenants(){
       +'<td>'+fmtDate(t.created_at)+'</td>'
       +'<td style="text-align:right"></td>';
     const act=tr.lastElementChild;
+    const open=document.createElement('a'); open.className='btn btn-ghost btn-sm'; open.textContent='Open'; open.href='app.html?shop='+encodeURIComponent(t.id); open.target='_blank'; open.style.textDecoration='none'; open.style.marginRight='6px'; act.appendChild(open);
     const btn=document.createElement('button');
     btn.className='btn btn-ghost btn-sm';
     btn.textContent= susp?'Reactivate':'Suspend';

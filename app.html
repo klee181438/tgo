@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>True Grit Options — Job Builder</title>
+<style>
+:root{
+  --charcoal:#1f2429;--charcoal2:#2b3138;--steel:#3d4752;--red:#c8382e;--red-dk:#a12b23;
+  --bg:#eef1f4;--panel:#fff;--line:#d9dee4;--ink:#1f2429;--mute:#697585;--good:#2e7d5b;--gold:#c8952a;
+  --shadow:0 1px 3px rgba(20,28,38,.08),0 8px 24px rgba(20,28,38,.08);
+  --shadow-lg:0 12px 40px rgba(20,28,38,.18);--r:14px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+input,select,textarea{font-family:inherit;font-size:15px}
+.hidden{display:none!important}
+h1,h2,h3,h4{margin:0;line-height:1.2}
+.mono{font-variant-numeric:tabular-nums}
+
+.topbar{background:var(--charcoal);color:#fff;display:flex;align-items:center;gap:14px;padding:10px 18px;position:sticky;top:0;z-index:50;box-shadow:0 2px 10px rgba(0,0,0,.2)}
+.brand{display:flex;align-items:center;gap:11px;font-weight:800;letter-spacing:.3px}
+.brand .mark{width:38px;height:38px;border-radius:9px;background:linear-gradient(150deg,var(--red),var(--red-dk));display:grid;place-items:center;font-weight:900;font-size:17px;color:#fff;box-shadow:inset 0 0 0 2px rgba(255,255,255,.15);flex:none}
+.brand .bt{font-size:16px;line-height:1.05}
+.brand .bt small{display:block;font-size:9.5px;font-weight:600;color:#9fb0c0;letter-spacing:1.5px}
+.topnav{display:flex;gap:4px;margin-left:auto;background:rgba(255,255,255,.06);padding:4px;border-radius:11px}
+.topnav button{color:#c3cdd8;padding:8px 14px;border-radius:8px;font-weight:700;font-size:13px;display:flex;align-items:center;gap:7px;transition:.15s}
+.topnav button.active{background:#fff;color:var(--charcoal)}
+.topnav button:not(.active):hover{color:#fff}
+.company-pill{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);padding:6px 12px;border-radius:9px;font-size:13px;font-weight:600;color:#dfe6ec}
+.company-pill .dot{width:8px;height:8px;border-radius:50%;background:var(--good)}
+
+.wrap{max-width:1180px;margin:0 auto;padding:22px 18px 70px}
+.page-head{margin-bottom:20px}
+.page-head h2{font-size:23px;font-weight:800}
+.page-head p{margin:5px 0 0;color:var(--mute);font-size:14.5px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.card-pad{padding:20px}
+.section-title{font-size:12px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--mute);margin:0 0 12px}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 20px;border-radius:11px;font-weight:800;font-size:15px;transition:.15s;background:var(--steel);color:#fff}
+.btn:hover{filter:brightness(1.08)}.btn:active{transform:translateY(1px)}
+.btn-red{background:linear-gradient(160deg,var(--red),var(--red-dk))}
+.btn-dark{background:var(--charcoal)}
+.btn-ghost{background:#fff;color:var(--ink);border:1.5px solid var(--line)}
+.btn-ghost:hover{border-color:var(--steel)}
+.btn-sm{padding:8px 14px;font-size:13.5px;border-radius:9px}
+.btn-lg{padding:15px 26px;font-size:16.5px}
+.btn-block{width:100%}
+
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12.5px;font-weight:700;color:var(--mute);margin-bottom:6px;letter-spacing:.2px}
+.field input,.field select,.field textarea{width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:10px;background:#fbfcfd;color:var(--ink);transition:.15s}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--red);background:#fff}
+.field .hint{font-size:11.5px;color:var(--mute);margin-top:5px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.inline-affix{position:relative}
+.inline-affix .pre{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--mute);font-weight:700}
+.inline-affix.pre-pad input{padding-left:26px}
+.inline-affix .suf{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--mute);font-weight:700}
+
+/* Job Builder */
+.jb-input{width:100%;min-height:104px;padding:15px 16px;font-size:17px;border:1.5px solid var(--line);border-radius:14px;background:#fff;line-height:1.6;resize:vertical}
+.jb-input:focus{outline:none;border-color:var(--red)}
+.jb-hintrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0 4px}
+.ex-chip{padding:7px 13px;border-radius:20px;background:#fff;border:1.5px solid var(--line);font-size:13px;color:var(--mute);font-weight:600}
+.ex-chip:hover{border-color:var(--red);color:var(--ink)}
+.aibadge{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:var(--red);background:#fdeceb;padding:4px 10px;border-radius:20px}
+
+.worksheet{margin:22px 0 8px}
+.ws-row{display:flex;align-items:center;gap:12px;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.ws-row.unmatched{border-color:#e6b800;background:#fffdf3}
+.ws-ico{width:34px;height:34px;border-radius:9px;flex:none;display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px}
+.ws-main{flex:1;min-width:0}
+.ws-issue{font-weight:700;font-size:15px}
+.ws-match{font-size:12.5px;color:var(--mute)}
+.ws-x{color:var(--mute);font-size:20px;padding:4px 8px;border-radius:8px}
+.ws-x:hover{background:#f0f2f5}
+
+.options{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(205px,1fr));align-items:stretch;margin-top:18px}
+.options.stacked{grid-template-columns:1fr;gap:14px;max-width:840px;margin-left:auto;margin-right:auto}
+.options.stacked .opt{flex-direction:row}
+.options.stacked .opt.featured{transform:none;box-shadow:var(--shadow-lg)}
+.options.stacked .opt .hero{width:250px;flex:none;display:flex;flex-direction:column;justify-content:center}
+.options.stacked .opt.featured .tier-name{padding-right:0}
+.options.stacked .opt .opt-body{flex:1}
+.options.stacked .opt{zoom:var(--f,1)}
+.seg{padding:7px 13px;border-radius:8px;font-size:13px;font-weight:700;color:var(--mute);background:none}
+.seg.on{background:var(--charcoal);color:#fff}
+@media(max-width:640px){ .options.stacked .opt{flex-direction:column} .options.stacked .opt .hero{width:auto} }
+.opt{position:relative;border:2px solid transparent;border-radius:18px;overflow:hidden;display:flex;flex-direction:column;transition:.18s;box-shadow:var(--shadow)}
+.opt:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg)}
+.opt .hero{padding:20px 18px 18px;color:#fff}
+.opt .tier-name{font-size:20px;font-weight:900;letter-spacing:.2px}
+.opt .tier-tag{font-size:12.5px;font-weight:700;opacity:.9;margin-top:2px}
+.opt .price{font-size:34px;font-weight:900;margin:13px 0 1px;letter-spacing:-.5px}
+.opt .price-sub{font-size:11.5px;opacity:.88}
+.opt .opt-body{background:#fff;padding:16px 16px 18px;display:flex;flex-direction:column;flex:1}
+.opt .lines{list-style:none;margin:0 0 15px;padding:0;display:flex;flex-direction:column;gap:13px;flex:1}
+.opt .li{font-size:12.5px;line-height:1.35}
+.opt .li .lt{display:flex;justify-content:space-between;gap:8px}
+.opt .li .lname{font-weight:800;font-size:13px}
+.opt .li .lprice{color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums;font-weight:800}
+.opt .li .ldesc{color:var(--mute);font-size:11.5px;margin-top:2px;line-height:1.35}
+.opt .li .lact{display:flex;gap:14px;margin-top:4px}
+.opt .li .lswap{font-size:11px;font-weight:800;display:inline-flex;align-items:center;gap:3px;cursor:pointer}
+.opt .li .lswap:hover{text-decoration:underline}
+.editflag{font-size:9.5px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#2e7d5b;background:#e9f6ef;padding:2px 6px;border-radius:5px;vertical-align:middle}
+.opt.featured .tier-name{padding-right:104px}
+.opt.featured{transform:scale(1.025)}
+.opt.featured:hover{transform:scale(1.025) translateY(-4px)}
+.badge{position:absolute;top:14px;right:14px;background:#fff;color:var(--red);font-size:10px;font-weight:900;letter-spacing:.6px;padding:5px 10px;border-radius:20px;text-transform:uppercase;box-shadow:0 3px 8px rgba(0,0,0,.22)}
+
+.job-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:13px}
+.job-card{background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:15px;text-align:left;transition:.15s;display:flex;flex-direction:column;gap:4px}
+.job-card:hover{border-color:var(--red);box-shadow:var(--shadow);transform:translateY(-2px)}
+.job-card .jc-cat{font-size:10.5px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--red)}
+.job-card .jc-name{font-size:15.5px;font-weight:800}
+.job-card .jc-meta{font-size:12px;color:var(--mute);margin-top:auto}
+
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{text-align:left;font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--mute);padding:10px 12px;border-bottom:2px solid var(--line)}
+.tbl td{padding:11px 12px;border-bottom:1px solid var(--line);font-size:14px;vertical-align:middle}
+.tbl tr:hover td{background:#f7f9fb}
+.pillcat{display:inline-block;padding:3px 9px;border-radius:6px;background:#eef1f4;font-size:11.5px;font-weight:700;color:var(--steel)}
+.mini{font-size:12px;color:var(--mute)}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:15px 17px}
+.stat .sv{font-size:25px;font-weight:900}
+.stat .sl{font-size:12px;color:var(--mute);font-weight:600;margin-top:2px}
+
+.modal-bg{position:fixed;inset:0;background:rgba(20,28,38,.55);backdrop-filter:blur(2px);z-index:100;display:grid;place-items:center;padding:20px}
+.modal{background:#fff;border-radius:16px;width:100%;max-width:600px;max-height:90vh;overflow:auto;box-shadow:var(--shadow-lg)}
+.modal-head{display:flex;align-items:center;padding:17px 22px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;z-index:2}
+.modal-head h3{font-size:18px;font-weight:800}
+.modal-head .x{margin-left:auto;font-size:22px;color:var(--mute);padding:4px 8px;border-radius:8px}
+.modal-head .x:hover{background:#f0f2f5}
+.modal-body{padding:22px}
+.pick-item{display:flex;justify-content:space-between;gap:10px;padding:12px 14px;border:1.5px solid var(--line);border-radius:11px;margin-bottom:9px;cursor:pointer;transition:.12s}
+.pick-item:hover{border-color:var(--red);background:#fdf7f6}
+.pick-item.sel{border-color:var(--good);background:#f0f9f4}
+.pick-item .pn{font-weight:700;font-size:14px}
+.pick-item .pp{font-weight:800;white-space:nowrap}
+
+.receipt{max-width:540px;margin:0 auto}
+.receipt .r-hero{border-radius:16px 16px 0 0;padding:24px;color:#fff;text-align:center}
+.receipt .r-hero .rt{font-size:12px;font-weight:800;letter-spacing:2px;text-transform:uppercase;opacity:.85}
+.receipt .r-hero .rn{font-size:25px;font-weight:900;margin-top:4px}
+.receipt .r-hero .rp{font-size:38px;font-weight:900;margin-top:8px}
+.receipt .r-body{background:#fff;border:1px solid var(--line);border-top:none;border-radius:0 0 16px 16px;padding:22px 24px}
+.line{display:flex;justify-content:space-between;gap:10px;padding:9px 0;font-size:14px;border-bottom:1px dashed var(--line)}
+.line.total{border-bottom:none;font-weight:900;font-size:18px;padding-top:13px}
+
+.gate{min-height:100vh;display:grid;place-items:center;background:radial-gradient(1200px 500px at 50% -10%,#2b3138,#1a1e23)}
+.gate .box{background:#fff;border-radius:18px;padding:34px 30px;width:100%;max-width:380px;box-shadow:var(--shadow-lg);text-align:center}
+.gate .mark{width:60px;height:60px;border-radius:14px;background:linear-gradient(150deg,var(--red),var(--red-dk));display:grid;place-items:center;font-weight:900;font-size:26px;color:#fff;margin:0 auto 16px}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--charcoal);color:#fff;padding:13px 22px;border-radius:12px;font-weight:700;font-size:14px;box-shadow:var(--shadow-lg);z-index:200;transition:.3s;opacity:0}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.empty{text-align:center;padding:44px 20px;color:var(--mute)}
+.callout{background:#fdf7f6;border:1.5px solid #f3d3d0;border-radius:12px;padding:13px 15px;font-size:13.5px;color:#7a2e28}
+
+@media(max-width:720px){
+  .row2,.row3{grid-template-columns:1fr}
+  .topnav button span{display:none}
+  .company-pill span.cp-label{display:none}
+  .brand .bt small{display:none}
+  .wrap{padding:16px 13px 60px}
+}
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<div id="gate" class="gate">
+  <div class="box">
+    <div class="mark">TG</div>
+    <h2 style="font-size:21px">True Grit Options</h2>
+    <p style="color:var(--mute);font-size:13.5px;margin:6px 0 20px">On-the-fly options for the field</p>
+    <div class="field" style="text-align:left">
+      <label>Email</label>
+      <input id="gateEmail" type="email" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="you@shop.com">
+    </div>
+    <div class="field" style="text-align:left">
+      <label>Password</label>
+      <input id="gatePass" type="password" autocomplete="current-password" placeholder="Your password" onkeydown="if(event.key==='Enter')tryLogin()">
+    </div>
+    <button class="btn btn-red btn-lg btn-block" id="gateBtn" onclick="tryLogin()">Sign in</button>
+    <div class="hint" id="gateMsg" style="margin-top:10px;min-height:16px"></div>
+    <div style="margin-top:8px"><button type="button" onclick="toggleGateMode()" style="background:none;border:none;color:var(--red);font-weight:700;cursor:pointer;font-size:13px;text-decoration:underline;padding:0">New here? Create your account</button></div>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <div class="topbar">
+    <div class="brand"><div class="mark">TG</div><div class="bt">True Grit Options<small>JOB BUILDER</small></div></div>
+    <div class="topnav" id="topnav"></div>
+    <div class="company-pill" id="companyPill"><span class="dot"></span><span id="companyName">—</span></div>
+  </div>
+  <div class="wrap" id="view"></div>
+</div>
+
+<div id="modalRoot"></div>
+<div id="toast" class="toast"></div>
+
+<script>
+/* ================= DATA: real starter book pulled from Profit Rhino (via HCP) =================
+   Each task: [groupKey, name, retailPrice, cost, tierLabel]  (prices already retail flat-rate) */
+const GROUPS = {
+  disposal:{label:'Garbage Disposal',cat:'Kitchen',syn:['disposal','disposer','garbage disposal','insinkerator','badger','disposal replacement']},
+  kfaucet:{label:'Kitchen Faucet',cat:'Kitchen',syn:['kitchen faucet','sprayer','spray head','kitchen sink faucet']},
+  ksink:{label:'Kitchen Sink',cat:'Kitchen',syn:['kitchen sink','sink basin','sink rim','sink flange']},
+  bfaucet:{label:'Bath / Lav Faucet',cat:'Bath',syn:['bathroom faucet','lav faucet','lavatory','vanity faucet','bath faucet','bathroom sink faucet']},
+  toilet:{label:'Toilet',cat:'Bath',syn:['toilet','commode','water closet','wc','running toilet','flush','fill valve','wax ring']},
+  tubvalve:{label:'Tub / Shower Valve',cat:'Bath',syn:['tub','shower','tub/shower','shower valve','cartridge','tub filler','shower cartridge']},
+  hosebib:{label:'Outdoor Hose Bib',cat:'Outdoor',syn:['hose bib','hosebib','hose bibb','spigot','sillcock','outdoor faucet','outside faucet','frost free','yard hydrant','front faucet']},
+  ptrap:{label:'Sink Drain / Repipe',cat:'Drains',syn:['p-trap','ptrap','p trap','sink drain','drain','repipe','tailpiece','trap','waste arm','under sink','sink plumbing','drain pipe','sewer pipe']},
+  shutoff:{label:'Shutoff Valve',cat:'Valves',syn:['shutoff','shut off','shut-off','angle stop','supply valve','stop valve','main shutoff','main shut off']},
+  prv:{label:'Pressure Reducing Valve',cat:'Valves',syn:['prv','pressure reducing','pressure regulator','water pressure','regulator','high pressure']},
+  whtank:{label:'Water Heater (Tank)',cat:'Water Heaters',syn:['water heater','hot water','tank','water heater replacement','40 gallon','50 gallon','80 gallon','wh replace']},
+  tankless:{label:'Tankless Water Heater',cat:'Water Heaters',syn:['tankless','on demand','on-demand','endless hot water']},
+  whrepair:{label:'Water Heater Repair',cat:'Water Heaters',syn:['water heater repair','gas valve','thermostat','heating element','thermocouple','pilot','anode','t&p','no hot water','pilot light','water heater leaking']},
+  sump:{label:'Sump / Ejector Pump',cat:'Pumps',syn:['sump','sump pump','ejector','sewage pump','basement water','well pump','jet pump']},
+  watertreat:{label:'Water Treatment',cat:'Water Treatment',syn:['filter','filtration','water treatment','softener','reverse osmosis','ro system','hard water','carbon filter','whole house filter']}
+};
+const STARTER = [
+["disposal","Unstick Jammed Disposer With Wrench",196.65,128.25],
+["disposal","1/3 Hp Disposer Replacement",644.15,386.5],
+["disposal","1/2 Hp Disposer Replacement",666.65,396.5],
+["disposal","291-Pc 1/2 Hp Disposer Changeout",720.01,421.87],
+["disposal","191-Pc 1/3 Hp Disposer Changeout",730.4,439.95],
+["disposal","L-3300 3/4 Hp Disposer Changeout",801.81,486.33],
+["disposal","2600 Disposer Changeout",812.05,482.59],
+["disposal","Install New Badger 1 Disposal",853.14,517.89],
+["disposal","Install New Badger 5 Disposal",919.01,555.53],
+["disposal","Evolution Pro Compact Disposal",1218.96,768.62],
+["disposal","Evolution Septic Assist Disposal",1301.58,820.26],
+["disposal","Evolution Excel Disposal",1563.82,1019.33],
+["kfaucet","Replace Faucet Spray Head Only",251.57,151.39],
+["kfaucet","Symmetrix Single Handle Faucet Cartridge",324.77,204.05],
+["kfaucet","Touch Control Faucet Cartridge",338.6,208],
+["kfaucet","Replace Faucet Spray Hose Only",346.01,211.47],
+["kfaucet","Faucet Spray Diverter",357.51,215.97],
+["kfaucet","Replace Faucet Spray Hose And Head",382.19,223.53],
+["kfaucet","1 Handle Water Filter Faucet",886.85,539.9],
+["kfaucet","Insinkerator Contemporary Dispenser Faucet",1167.37,700.62],
+["kfaucet","Complete SS Rimmed Sink Kit With Faucet",1441.9,922.5],
+["ksink","Sink Rim Up To 21x32",291.09,176.23],
+["ksink","Sink Rim 21 x 24 E-Lug",365.9,209],
+["ksink","Sink Rim Up To 21 x 42 E-Lug",412.65,235],
+["ksink","Cast Iron Smart Divide Self-Rimming Sink",1685.74,1068.11],
+["ksink","Cast Iron High/Low Bowl Self-Rimming Sink",2033.12,1299.7],
+["ksink","Cast Iron Smart Divide Undermount Sink",2051.44,1306.61],
+["ksink","Triple Basin Stainless Steel Undermount Sink",3101.04,2019.33],
+["bfaucet","1 Handle Water Filter Faucet",886.85,539.9],
+["bfaucet","Over-The-Rim Single Handle Bidet Faucet",964.11,584.05],
+["bfaucet","Two Handle Center-Set Faucet",1059.31,646.25],
+["bfaucet","BN Single Handle High Vessel Faucet",1061.15,647.3],
+["bfaucet","Two Handle No-Deck Widespread Faucet",1091.82,664.83],
+["bfaucet","Two Handle 8 In Widespread Faucet",1121,681.5],
+["bfaucet","BN Single Handle Vessel Faucet",1121,681.5],
+["bfaucet","Gooseneck Free-Standing Faucet w/ Handshower",1212.14,763.4],
+["bfaucet","BN Over-The-Rim Single Handle Bidet Faucet",1306.1,822.13],
+["bfaucet","Single Handle Lav Faucet",1361.21,890.64],
+["bfaucet","Vertical Spray Two Handle Bidet Faucet",1754.46,1154.21],
+["bfaucet","BN Vertical Spray Two Handle Bidet Faucet",1984.91,1307.84],
+["toilet","Universal Adjustable Toilet Float Rod",185.97,111.49],
+["toilet","Acid Flush Of Toilet To Remove Deposits",515.31,326.76],
+["toilet","2 Pc Standard White Elongated Toilet 1.0 Gpf",978.8,591.85],
+["toilet","2 Pc Economy White Elongated Toilet 1.28 Gpf",1019.82,615.29],
+["toilet","2 Pc Economy White Elongated Dual-Flush Toilet",1104.53,659.89],
+["toilet","2 Pc Premium White Round Toilet",1184.24,734.29],
+["toilet","1 Pc Economy White Round Toilet 1.28 Gpf",1291.72,801.47],
+["toilet","2 Pc Standard White Round Toilet 1.6 Gpf",1387.13,861.1],
+["toilet","1 Pc Premium White Elongated Toilet 1.28 Gpf",1468.83,910.44],
+["toilet","2 Pc Economy White Elongated ADA Toilet 1.28 Gpf",1681.72,1024.29],
+["toilet","1 Pc Premium White Elongated Toilet 1.0 Gpf",1920.32,1252.29],
+["toilet","1 Pc Premium White Skirted Compact Toilet",4223.18,2782.69],
+["tubvalve","Economy Showerhead Only",280.05,165.96],
+["tubvalve","Handshower Slide-Bar Kit w/ Hose & Head",682.4,429.5],
+["tubvalve","Single Handle Shower With Spout & Head",820.7,502.1],
+["tubvalve","Flash Shower Rough-In Valve Body (Pex)",989.13,603.55],
+["tubvalve","Flash Shower Rough-In Valve w/ Stops (Pex)",1013.55,627.3],
+["tubvalve","Flash Shower Rough-In Valve Body (CPVC)",1043.25,640.5],
+["tubvalve","BN Single Handle Shower With Head And Spout",1079.66,680.6],
+["tubvalve","Rite-Temp Pressure-Balancing Valve Body",1130.01,699.92],
+["tubvalve","Single Handle Shower w/ Spout, Head & Valve",1216.99,766.16],
+["tubvalve","Thermostatic Valve 3/4 In",1484.83,951.46],
+["tubvalve","ORB Single Handle Shower w/ Head, Spout & Valve",1964.84,1287.71],
+["tubvalve","BN Single Control Tub Filler With Spray",2383.64,1570.91],
+["hosebib","3/4 In Hose Bibb Vacuum Breaker",243.54,147.97],
+["hosebib","Heavy Duty Lawn Faucet (Sillcock)",365.9,218.1],
+["hosebib","1/2 In Brass Garden Valve, 3/4 In Hose Thread",440.31,273.27],
+["hosebib","1/2 In Brass Hose Bib, Tee Handle",535.29,334.63],
+["hosebib","Frost-Proof Heavy Duty Lawn Faucet (Copper)",669.6,414.74],
+["hosebib","3/4 x 6 In Frost-Free Anti-Siphon Faucet",714.9,439.57],
+["hosebib","1/2 x 8 In Frost-Free Pex Anti-Siphon Faucet",774.15,481.05],
+["hosebib","1/2 x 14 In Frost-Free Pex Anti-Siphon Faucet",797.7,490.47],
+["hosebib","1/2 x 8 In Frost-Free Swt Anti-Siphon Faucet",882.82,547.14],
+["hosebib","1/2 x 8 In Loose-Key Frost-Free Faucet",907.09,562.97],
+["hosebib","1/2 x 6 In Loose-Key Frost-Free Faucet",928.76,572.6],
+["hosebib","Frost-Proof Lawn Faucet Anti-Siphon (Premium)",1088.97,680.17],
+["ptrap","Add For Center-Out Drain (Metal)",106.75,42.7],
+["ptrap","Cast Iron Floor Drain Cover",307.7,177.02],
+["ptrap","Reinstall Existing Drain & Supplies",499.9,321.5],
+["ptrap","Single Sink Drain Pipe w/ Dishwasher",837.08,470.29],
+["ptrap","Double Sink Drain Pipe With Disposer",994.07,535.31],
+["ptrap","Replace 1-1/2 to 2 In PVC Drain Pipe 10-20 Ft",1232.95,728.65],
+["ptrap","Replace 3 In Cast Iron Soil Pipe 1-5 Ft",1551.22,842.04],
+["ptrap","Replace 6 In PVC Drain/Sewer Pipe 10-20 Ft",1790.74,951.28],
+["ptrap","Replace 6 In PVC Drain/Sewer Pipe 20-30 Ft",2249.99,1172.93],
+["ptrap","Replace 2 In Cast Iron Soil Pipe 20-30 Ft",2851.08,1393.03],
+["ptrap","Replace 3 In Cast Iron Soil Pipe 20-30 Ft",4179.15,1816.05],
+["ptrap","Replace 6 In Cast Iron Soil Pipe 30-40 Ft",6647.63,3129.97],
+["shutoff","Replace Braided SS Supply, Up To 16 In",240.74,147.17],
+["shutoff","Replace Stop & Supply w/ Faucet Change",369.56,218.71],
+["shutoff","LeakSmart 3/4 In Main Supply Shut Off",1115.94,708.9],
+["shutoff","LeakSmart 1-1/4 In Main Supply Shut Off",1488.51,931.57],
+["shutoff","Re-Pipe Water Supplies, 1-Man (up to 10 ft)",2206.15,1158.49],
+["shutoff","Re-Pipe Water Supplies, 1-Man (up to 14 ft)",3328.05,1706.13],
+["shutoff","Re-Pipe Water Supplies, 1-Man (up to 18 ft)",4399.95,2241.27],
+["shutoff","Re-Pipe Water Supplies, 1-Man (up to 26 ft)",6515.2,3298.12],
+["shutoff","Re-Pipe Water Supplies, 1-Man (up to 34 ft)",8593.55,4342.97],
+["shutoff","Re-Pipe Water Supplies, 1-Man (up to 48 ft)",12242.3,6174.02],
+["prv","3/4 In Pressure Reducing Valve Install",748.25,449.5],
+["prv","Replace 1/2 In Water Pressure Regulator",1194.8,756.72],
+["prv","Replace 3/4 In Water Pressure Regulator",1210.73,766.68],
+["prv","Replace 1 In Water Pressure Regulator",1354.85,856.75],
+["whtank","Disposal Of Old Water Heater",471.75,283.75],
+["whtank","120 Gallon Solar-Saver Water Heater",1148.56,742.24],
+["whtank","100 Gallon Natural Gas Water Heater, 6-Yr",1286.1,817],
+["whtank","70 Gallon Burner & Control Package",1731.54,1137.53],
+["whtank","40 Gal Draft Propane Water Heater",2080.12,1347.6],
+["whtank","30 Gallon Electric Water Heater, 6-Yr",2312.23,1428.24],
+["whtank","40 Gal LP Water Heater, 36kBTU Tall",2445.52,1524.29],
+["whtank","50 Gallon Electric Water Heater, 12-Yr",2807.23,1758.24],
+["whtank","50 Gal Natural Gas Water Heater, 45kBTU Tall",3113.59,1969.67],
+["whtank","75 Gal Natural Gas Water Heater, 76kBTU Tall",3627.06,2311.98],
+["whtank","50 Gal Heat-Pump Water Heater, Tall 120v",4373.83,2807.89],
+["whtank","80 Gal Hybrid Heat-Pump Water Heater, Tall",5994.11,3888.08],
+["tankless","Remove Existing Tank & Convert To Tankless",248.35,97.78],
+["tankless","Second Man For Tankless Install",955.65,623.25],
+["tankless","140k Indoor Tankless Low-Nox Heater",2252.08,1403.57],
+["tankless","140k Outdoor Tankless Low-Nox Heater",2355.86,1472.76],
+["tankless","190k In/Outdoor Tankless Heater (LP or Nat)",2539.18,1594.97],
+["tankless","140k Indoor Tankless Low-Nox Convertible",2625.9,1706.35],
+["tankless","140k Outdoor Tankless Low-Nox Convertible",2729.68,1775.54],
+["tankless","199k In/Outdoor Tankless Heater (LP or Nat)",3201.52,2036.53],
+["tankless","199k Indoor Commercial Tankless Heater (Nat)",3336.5,2121.37],
+["tankless","199k In/Outdoor Tankless Heater w/ Recirc",3555.58,2272.57],
+["tankless","180k In/Outdoor Tankless Heater, Condensing",3946.55,2530.57],
+["tankless","199k In/Outdoor Tankless Heater, Condensing",4288.22,2758.35],
+["whrepair","Standard Anode Rod",334.62,196.49],
+["whrepair","Thermocouple, 36 In",422.36,265.64],
+["whrepair","Gas Control Valve Assembly",641.64,386.94],
+["whrepair","Gas Control Valve, 160 Deg 2 In Cavity",772.87,481.2],
+["whrepair","Natural Gas Control Valve",811.35,503.19],
+["whrepair","LP Gas Control Valve",854.89,528.07],
+["whrepair","Burner Unit Assembly",895.42,566.55],
+["whrepair","Mixing Valve, 1 In Swt 70-180 Deg",959.43,585.3],
+["whrepair","Tempering Valve, 3/4 In 100-130 Deg",1003.75,628.45],
+["whrepair","Natural Gas Control Valve (Heavy Duty)",1064.73,678.77],
+["whrepair","Mixing Valve, 1/2 In Swt",1145.08,691.39],
+["whrepair","LP Gas Control Valve (Heavy Duty)",1800.66,1193.34],
+["sump","Install Torque Arrestor On Pulled Pump",243.99,147.67],
+["sump","Indoor High-Water Sump Alarm, 120v",680.56,413.33],
+["sump","1/3 Hp Three-Wire Pump Motor, 230v",1091.51,690.85],
+["sump","1/2 Hp High-Capacity Jet Pump (Plastic)",1461.05,957.2],
+["sump","1 Hp Convertible Jet Pump (Plastic)",1725.65,1133.6],
+["sump","2 Hp Three-Wire Pump Motor, 230v",2324.15,1541.35],
+["sump","1 Hp High-Capacity Jet Pump (Brass)",2716.55,1794.2],
+["sump","5 Gpm Thermoplastic Pump, 3/4 Hp 230v",3197.75,2116.4],
+["sump","5 Hp Three-Wire Pump Motor, 230v",3572.9,2373.85],
+["sump","1-1/2 Hp Multi-Stage Jet Pump (Plastic)",3999.05,2649.2],
+["sump","1-1/2 Hp Direct-To-Casing Pump (Brass)",4391.15,2912],
+["sump","60 Gpm Stainless Steel Pump, 7 Hp 230v",9980.15,6638],
+["watertreat","Cascade GAC Filter Replacement (2 Filters)",333.9,179.5],
+["watertreat","3/4 In Taste/Odor/Sediment In-Line Filter",504.67,306.01],
+["watertreat","Heavy Duty 1 In Filter w/ Pressure Relief",871.11,548.8],
+["watertreat","Water Filter Housing (< 4 Bath Home)",985.35,606.56],
+["watertreat","Water Filter System (< 2 Bath Home)",1093.14,690.44],
+["watertreat","Water Filtration System (< 2 Bath Home)",1237.01,772.65],
+["watertreat","3-Stage Under-Counter Water Filter System",1372.38,862.2],
+["watertreat","6000-Gallon Full-Flow Whole-House Filter",1530,1006.5],
+["watertreat","0.6 Gpm Purification Filtration System",1672.63,1105.24],
+["watertreat","14 Gpm Chloramine Whole-House Filter System",2332.98,1541.82],
+["watertreat","25-Gallon/Day Reverse Osmosis With Faucet",3122.04,1995.69],
+["watertreat","50 Gpm Whole-House Filter System",11540.17,7675.95]
+];
+</script>
+<script>
+/* ================= PERSISTENCE ================= */
+const STORE_KEY='truegrit_jobbuilder_v2';
+let memFallback=null;
+function loadState(){ try{const r=localStorage.getItem(STORE_KEY);if(r)return JSON.parse(r);}catch(e){if(memFallback)return memFallback;} return null; }
+function saveState(){ try{localStorage.setItem(STORE_KEY,JSON.stringify(DB));}catch(e){memFallback=JSON.parse(JSON.stringify(DB));} if(!window.__syncing) scheduleSync(); }
+
+/* ================= CLOUD SYNC (Supabase Auth + tenants) ================= */
+function authed(){ return !!(ME && ME.uid); }
+async function sbPullRows(){ if(!authed()) return null;
+  try{ const {data,error}=await sb.from('tenants').select('id,name,slug,settings,tiers,book,status').order('name'); if(error) return null; return data; }catch(e){ return null; } }
+async function sbUpsert(c){ if(!authed()) return;
+  try{ await sb.from('tenants').update({name:c.name,settings:c.settings,tiers:c.tiers,book:c.book}).eq('id',c.id); }catch(e){}
+}
+async function sbDelete(id){ /* shops are removed from the OptionPush Admin Console */ }
+let __syncT; function scheduleSync(){ if(!authed())return; clearTimeout(__syncT); __syncT=setTimeout(()=>{ (DB.companies||[]).forEach(c=>sbUpsert(c)); }, 900); }
+async function pullAndApply(){ const rows=await sbPullRows(); if(rows===null) return 'offline';
+  if(rows.length===0){ return 'empty'; }
+  window.__syncing=true;
+  DB.companies=rows.map(x=>({id:x.id,name:x.name,settings:x.settings,tiers:x.tiers,book:x.book}));
+  const wanted=(ME&&ME.tenantId)?ME.tenantId:DB.activeCompanyId;
+  DB.activeCompanyId = DB.companies.find(c=>c.id===wanted) ? wanted : DB.companies[0].id;
+  saveState(); window.__syncing=false; return 'pulled';
+}
+async function startSync(){ if(!authed())return; const res=await pullAndApply(); if(res==='pulled') render();
+  if(!window.__syncBound){ window.__syncBound=true; window.addEventListener('focus',async()=>{ if(await pullAndApply()==='pulled') render(); }); }
+}
+async function syncNow(){ toast('Syncing…'); const res=await pullAndApply();
+  if(res==='offline'){ toast('Can’t reach the database'); return; }
+  render(); toast('Synced — pulled the latest');
+}
+
+/* ================= SEED ================= */
+function defaultMarkupTiers(){ // from True Grit's HCP sliding scale
+  return [
+    {to:1,pct:400},{to:5,pct:300},{to:10,pct:250},{to:25,pct:200},{to:50,pct:150},
+    {to:75,pct:125},{to:100,pct:100},{to:300,pct:75},{to:500,pct:60},{to:null,pct:50}
+  ];
+}
+function defaultTiers(){
+  return [
+    {key:'patch',name:'Patch & Go',        tag:'Keep it running',   color:'#6b7280'},
+    {key:'ess',  name:'The Essential Fix', tag:'Get it handled',    color:'#4a7a92'},
+    {key:'done', name:'Done Right',        tag:'The proper fix',    color:'#2f6fb0', featured:true},
+    {key:'rock', name:'Rock Solid',        tag:'Built to last',     color:'#c77b30'},
+    {key:'iron', name:'Total Peace of Mind',tag:'Best & guaranteed',color:'#1f2429', gold:true}
+  ];
+}
+/* pad tiers from a palette if a company wants more options than defined */
+const TIER_PALETTE=[{name:'Tier',tag:'',color:'#7a869a'},{name:'Tier',tag:'',color:'#4a7a92'},{name:'Tier',tag:'',color:'#2f6fb0'},{name:'Tier',tag:'',color:'#c77b30'},{name:'Tier',tag:'',color:'#1f2429',gold:true},{name:'Tier',tag:'',color:'#2e7d5b'}];
+function ensureTiers(c,n){ while(c.tiers.length<n){ const p=TIER_PALETTE[c.tiers.length%TIER_PALETTE.length]; c.tiers.push({key:newId('tr'),name:'Tier '+(c.tiers.length+1),tag:p.tag,color:p.color,gold:p.gold}); } }
+function seedBook(){
+  return STARTER.map((r,i)=>({ id:'t'+i, g:r[0], name:r[1], price:r[2], cost:r[3], tier:r[4]||'', custom:false }));
+}
+function newCompany(id,name,over){
+  return Object.assign({
+    id,name,
+    settings:{ laborRate:225, useSliding:true, markupTiers:defaultMarkupTiers(), flatMarkup:35,
+      taxPct:0, roundTo:1, financeMonths:36, showMonthly:true, numOptions:5, spread:linspace(0.3,0.92,5), optionLayout:'stacked', enforceOrder:true, tierGapPct:12 },
+    tiers:defaultTiers(),
+    book:seedBook()
+  }, over||{});
+}
+function seed(){ return { masterName:'True Grit Software Co.', activeCompanyId:'tgp',
+  companies:[ newCompany('tgp','True Grit Plumbing'),
+    newCompany('demo','Sample Licensee (Demo Co.)',{settings:{laborRate:165,useSliding:false,flatMarkup:40,markupTiers:defaultMarkupTiers(),taxPct:6.5,roundTo:1,financeMonths:24,showMonthly:false,numOptions:3,spread:[0.4,0.65,0.9]}}) ] }; }
+
+let DB=loadState()||seed();
+if(!DB.companies||!DB.companies.length){DB=seed();saveState();}
+if(!DB.ai) DB.ai={enabled:false,key:'',model:'claude-3-5-haiku-latest'};
+/* Supabase Auth + tenants. The anon (public) key is safe to bake into the hosted file. */
+const SUPABASE_URL='https://wctpjtfvdhfejrkiiwdw.supabase.co';
+const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndjdHBqdGZ2ZGhmZWpya2lpd2R3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODMwNTYsImV4cCI6MjEwMDg1OTA1Nn0.2zGJnixNVu7bRs4Ryb28M4Ntbdt_dBJ_oHOt7gPSoAg';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {auth:{persistSession:true, autoRefreshToken:true}});
+let ME={uid:null, role:null, tenantId:null, email:null};
+
+/* ================= SESSION ================= */
+let ROLE=null, TAB='jobbuilder';
+let jb={ text:'', issues:[], options:null, chosen:null, presented:false, overrides:{} };
+
+/* ================= HELPERS ================= */
+function co(){ return DB.companies.find(c=>c.id===DB.activeCompanyId)||DB.companies[0]; }
+function fmt(n){ return '$'+Math.round(n).toLocaleString('en-US'); }
+function fmt2(n){ return '$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function esc(s){ return (s||'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+function newId(p){ return p+'_'+Math.abs((Date.now()^(performance.now()*1000|0))).toString(36); }
+function roundTo(n,to){ to=to||1; return Math.round(n/to)*to; }
+function linspace(a,b,n){ if(n<=1)return[(a+b)/2]; const o=[];for(let i=0;i<n;i++)o.push(a+(b-a)*i/(n-1));return o; }
+
+/* markup for a given material cost using sliding scale */
+function markupPctForCost(cost, s){
+  if(!s.useSliding) return s.flatMarkup;
+  for(const t of s.markupTiers){ if(t.to==null||cost<=t.to) return t.pct; }
+  return s.markupTiers[s.markupTiers.length-1].pct;
+}
+/* price a CUSTOM task from labor + materials */
+function priceCustom(hours, materialCost, s){
+  const labor=hours*s.laborRate;
+  const mat=materialCost*(1+markupPctForCost(materialCost,s)/100);
+  return roundTo((labor+mat)*(1+(s.taxPct||0)/100), s.roundTo||1);
+}
+function taskPrice(t,s){ // imported/locked = fixed price; custom = computed
+  if(t.custom && !t.priceLocked) return priceCustom(t.laborHours||0, t.materialCost||0, s);
+  return t.price;
+}
+function monthly(p,m){ return Math.ceil(p/m); }
+
+/* clean, customer-facing description of the WORK (name shown separately) */
+const DESC_TMPL={
+  disposal:"Old disposer removed & hauled off, new unit installed, drain and power reconnected, tested leak-free.",
+  kfaucet:"Installed with new supply connections and fully tested for leaks.",
+  ksink:"Set, sealed and connected — basin and drain tested.",
+  bfaucet:"Installed on your vanity with new supply lines, tested clean.",
+  toilet:"New wax seal and bolts, set solid and tested leak-free.",
+  tubvalve:"Installed and checked for smooth, leak-free hot & cold operation.",
+  hosebib:"Installed on your exterior wall — solid, freeze-resistant, no drips.",
+  ptrap:"Proper slope, sealed connections, clean leak-free drainage.",
+  shutoff:"Installed so water shuts off cleanly whenever you need it.",
+  prv:"Installed to protect your home's plumbing from high water pressure.",
+  whtank:"Old tank hauled away, new connections, code-compliant and fully tested.",
+  tankless:"Endless hot water — full gas & venting setup, tested to spec.",
+  whrepair:"Faulty part replaced and system restored to safe, reliable hot water.",
+  sump:"Installed and tested to keep your space dry and protected.",
+  watertreat:"Installed for cleaner, better water — flushed and tested.",
+  custom:"Completed and tested, backed by our workmanship guarantee."
+};
+function genDesc(t){ if(t.desc) return t.desc; return DESC_TMPL[t.g]||DESC_TMPL.custom; }
+
+/* ================= JOB BUILDER ENGINE ================= */
+const STRONG={
+  disposal:['disposal','disposer','garbage disp'],
+  kfaucet:['kitchen faucet','sprayer','spray head'],
+  ksink:['replace sink','replace the sink','new sink','install sink','sink basin','sink flange'],
+  bfaucet:['bathroom faucet','lav faucet','lavatory','vanity faucet','bath faucet'],
+  toilet:['toilet','commode','water closet','wax ring'],
+  tubvalve:['tub','shower valve','shower cartridge','tub filler','shower'],
+  hosebib:['hose bib','hosebib','hose bibb','sillcock','spigot','outdoor faucet','outside faucet'],
+  ptrap:['repip','re-pip','p-trap','ptrap','p trap','drain line','waste arm','tailpiece','sink drain','trap'],
+  shutoff:['shut off','shutoff','shut-off','angle stop','stop valve','supply valve','supply stop'],
+  prv:['pressure reducing','pressure regulator','prv','water pressure'],
+  whtank:['water heater','hot water tank','wh replace','new water heater','replace water heater'],
+  tankless:['tankless','on demand','on-demand'],
+  whrepair:['water heater repair','no hot water','pilot light','gas valve','thermocouple','anode','heating element'],
+  sump:['sump','ejector','sewage pump','well pump','jet pump'],
+  watertreat:['water softener','softener','reverse osmosis','ro system','whole house filter','water filter','filtration']
+};
+function parseIssues(text){
+  return text.replace(/\band\b|\balso\b|by the way|\bplus\b/gi,',')
+    .split(/[\n,;]+/).map(x=>x.trim()).filter(x=>x.replace(/[^a-z]/gi,'').length>2);
+}
+function matchGroup(phrase){
+  const p=phrase.toLowerCase(); let best=null,bs=0;
+  for(const key in GROUPS){
+    let s=0;
+    (STRONG[key]||[]).forEach(kw=>{ if(p.includes(kw)) s+=1000; });
+    (GROUPS[key].syn||[]).forEach(kw=>{ if(p.includes(kw)) s+=kw.length; });
+    if(s>bs){bs=s;best=key;}
+  }
+  return bs>0?best:null;
+}
+function groupTasks(key){ return co().book.filter(t=>t.g===key).slice().sort((a,b)=>taskPrice(a,co().settings)-taskPrice(b,co().settings)); }
+
+function analyze(){
+  const phrases=parseIssues(jb.text);
+  jb.issues=phrases.map(ph=>{ const g=matchGroup(ph); return {phrase:ph, group:g, custom:null}; });
+}
+/* choose N distinct, increasing task indices spread across a sorted group of M */
+function pickIndices(M,N){
+  if(M<=0) return [];
+  if(N>=M){ const a=[]; for(let i=0;i<N;i++) a.push(Math.min(i,M-1)); return a; }
+  const a=[]; let prev=-1;
+  for(let i=0;i<N;i++){ let idx=Math.round(i*(M-1)/(N-1)); if(idx<=prev) idx=prev+1; if(idx>M-1) idx=M-1; a.push(idx); prev=idx; }
+  return a;
+}
+function buildOptions(){
+  const c=co(), s=c.settings, N=s.numOptions;
+  ensureTiers(c,N);
+  const matched=jb.issues.filter(i=>i.group||i.custom);
+  if(!matched.length){ jb.options=null; return; }
+  const perIssue=matched.map(iss=>{
+    if(iss.custom) return {iss, custom:true};
+    const tasks=groupTasks(iss.group);
+    return {iss, tasks, idxs:pickIndices(tasks.length,N), group:iss.group};
+  });
+  jb.options=c.tiers.slice(0,N).map((tier,ti)=>{
+    const lines=perIssue.map(pi=>{
+      if(pi.custom) return {issue:pi.iss, taskId:pi.iss.custom.id, groupKey:null};
+      const idx=pi.idxs[ti];
+      return {issue:pi.iss, taskId:pi.tasks[idx].id, groupKey:pi.group};
+    });
+    return {tier, lines};
+  });
+  jb.options.forEach(o=>{ o.baseTotal=optionTotal(o); }); // reference ladder for spacing
+}
+function taskById(id){ return (jb.overrides&&jb.overrides[id])||co().book.find(t=>t.id===id); }
+function setLayout(v){ co().settings.optionLayout=v; saveState(); render(); }
+
+/* ================= LIVE AI LAYER (optional, user-provided key) ================= */
+function aiReady(){ return !!(DB.ai && DB.ai.enabled && DB.ai.key); }
+async function aiCall(system,user,maxTokens){
+  const cfg=DB.ai||{};
+  if(!cfg.enabled||!cfg.key) throw new Error('AI is off');
+  const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+    headers:{'content-type':'application/json','x-api-key':cfg.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:cfg.model||'claude-3-5-haiku-latest',max_tokens:maxTokens||500,system,messages:[{role:'user',content:user}]})});
+  if(!res.ok){ let t=''; try{t=await res.text();}catch(e){} throw new Error('API '+res.status+(t?': '+t.slice(0,160):'')); }
+  const d=await res.json();
+  return (d.content&&d.content[0]&&d.content[0].text)||'';
+}
+async function aiParse(text){
+  const groups=Object.entries(GROUPS).map(([k,g])=>`${k} = ${g.label} (${g.cat})`).join('\n');
+  const system=`You help a plumber turn a messy on-site note into a clean job list. Split the note into individual repair or replacement items (merge words describing the same item). For each item pick the ONE best group key below, or null if nothing fits.\nGROUP KEYS:\n${groups}\nReturn ONLY strict minified JSON: {"items":[{"phrase":"short human label","group":"key or null"}]}`;
+  const raw=await aiCall(system,text,700);
+  const m=raw.match(/\{[\s\S]*\}/); const obj=JSON.parse(m?m[0]:raw);
+  const items=(obj.items||[]).map(it=>({phrase:String(it.phrase||'').trim(),group:(it.group&&GROUPS[it.group])?it.group:null,custom:null})).filter(x=>x.phrase);
+  if(!items.length) throw new Error('no items parsed');
+  return items;
+}
+async function aiDescribe(name,groupLabel){
+  const system=`Write ONE warm, plain, customer-facing sentence (max 22 words) describing what this plumbing task includes and its benefit. No price, no quotes, no markdown.`;
+  const t=await aiCall(system,`Task: ${name}${groupLabel?` — category: ${groupLabel}`:''}`,120);
+  return t.trim().replace(/^["']+|["']+$/g,'');
+}
+function setAI(k,v){ if(!DB.ai)DB.ai={}; DB.ai[k]=(k==='enabled')?(v==='1'||v===true):(typeof v==='string'?v.trim():v); saveState(); if(k==='enabled')render(); }
+async function testAI(){ const el=document.getElementById('aiStatus'); if(el){el.textContent='Testing…';el.style.color='var(--mute)';}
+  try{ await aiCall('Reply with the single word ok.','ping',10); if(el){el.textContent='✓ Connected';el.style.color='var(--good)';} toast('AI connected'); }
+  catch(e){ if(el){el.textContent='✕ '+e.message;el.style.color='var(--red)';} } }
+async function aiFillDesc(fieldId,name,groupLabel,btn){
+  if(!aiReady()){ toast('Turn on AI in Pricing first'); return; }
+  const el=document.getElementById(fieldId); if(!el)return; const orig=el.value; el.value='✦ Writing…'; if(btn)btn.disabled=true;
+  try{ el.value=await aiDescribe(name||'task',groupLabel||''); }catch(e){ el.value=orig; toast('AI: '+e.message.slice(0,50)); }
+  if(btn)btn.disabled=false;
+}
+function effLine(l){ const s=co().settings; const t=taskById(l.taskId); return (t?taskPrice(t,s):0)+(l.adj||0); }
+function optionTotal(opt){ const s=co().settings; return roundTo(opt.lines.reduce((a,l)=>a+effLine(l),0), s.roundTo||1); }
+/* keep the tier ladder ordered AND spaced: each tier stays at least its original
+   dollar gap, or a minimum % above the one below (whichever is larger) */
+function enforceTierOrder(){
+  if(!jb.options) return; const s=co().settings; const N=jb.options.length;
+  jb.options.forEach(o=>{o.lines.forEach(l=>{l.adj=0;l.adjusted=false;}); o.outOfOrder=false;});
+  const gapPct=(s.tierGapPct!=null?s.tierGapPct:12)/100;
+  for(let i=1;i<N;i++){
+    const below=optionTotal(jb.options[i-1]);
+    const actual=optionTotal(jb.options[i]);
+    const baseGap=Math.max(0,(jb.options[i].baseTotal||0)-(jb.options[i-1].baseTotal||0));
+    const target=below + Math.max(baseGap, roundTo(below*gapPct, s.roundTo||1));
+    if(actual < target){
+      if(s.enforceOrder!==false){
+        const delta=target-actual;
+        const lines=jb.options[i].lines; let idx=0,best=-1;
+        lines.forEach((l,li)=>{const p=effLine(l); if(p>best){best=p;idx=li;}});
+        lines[idx].adj=(lines[idx].adj||0)+delta; lines[idx].adjusted=true;
+      } else if(actual<=below) jb.options[i].outOfOrder=true;
+    }
+  }
+}
+
+/* ================= TOAST / MODAL ================= */
+let toastT;
+function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2200); }
+function openModal(title,body){ document.getElementById('modalRoot').innerHTML=`<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="modal-head"><h3>${title}</h3><button class="x" onclick="closeModal()">✕</button></div><div class="modal-body">${body}</div></div></div>`; }
+function closeModal(){ document.getElementById('modalRoot').innerHTML=''; }
+
+/* ================= AUTH / NAV ================= */
+let __gateMode='signin';
+function toggleGateMode(){ __gateMode=(__gateMode==='signin')?'signup':'signin'; const h=document.querySelector('#gate h2'); if(h)h.textContent=(__gateMode==='signin')?'True Grit Options':'Create your account'; const b=document.getElementById('gateBtn'); if(b)b.textContent=(__gateMode==='signin')?'Sign in':'Create account'; gmsg(''); }
+function gmsg(t){ const m=document.getElementById('gateMsg'); if(m)m.textContent=t||''; }
+async function tryLogin(){ const email=(document.getElementById('gateEmail').value||'').trim().toLowerCase(); const pass=document.getElementById('gatePass').value; if(!email||!pass){ gmsg('Enter your email and password.'); return; }
+  const btn=document.getElementById('gateBtn'); btn.textContent='…';
+  if(__gateMode==='signin'){ const {error}=await sb.auth.signInWithPassword({email,password:pass}); if(error){ gmsg(error.message); btn.textContent='Sign in'; return; } boot(); }
+  else { const {data,error}=await sb.auth.signUp({email,password:pass}); if(error){ gmsg(error.message); btn.textContent='Create account'; return; } if(data.session){ boot(); } else { gmsg('Account created — check your email to confirm, then sign in.'); btn.textContent='Create account'; __gateMode='signin'; } }
+}
+async function boot(){ const {data:{session}}=await sb.auth.getSession();
+  if(!session){ document.getElementById('gate').classList.remove('hidden'); document.getElementById('app').classList.add('hidden'); return; }
+  const {data:prof}=await sb.from('profiles').select('role,tenant_id,email').eq('id',session.user.id).single();
+  const r=prof?prof.role:'tech';
+  ME={uid:session.user.id, role:r, tenantId:prof?prof.tenant_id:null, email:(prof&&prof.email)||session.user.email};
+  ROLE = (r==='superadmin')?'master':((r==='owner')?'owner':'staff'); TAB='jobbuilder';
+  await pullAndApply();
+  try{ const sp=new URLSearchParams(location.search).get('shop'); if(sp && ROLE==='master' && DB.companies.find(c=>c.id===sp)) DB.activeCompanyId=sp; }catch(e){}
+  enterApp();
+}
+function enterApp(){ document.getElementById('gate').classList.add('hidden'); document.getElementById('app').classList.remove('hidden'); render(); startSync(); }
+async function logout(){ try{ await sb.auth.signOut(); }catch(e){} ROLE=null; ME={uid:null,role:null,tenantId:null,email:null}; document.getElementById('app').classList.add('hidden'); document.getElementById('gate').classList.remove('hidden'); const p=document.getElementById('gatePass'); if(p)p.value=''; }
+const ICO={bolt:'<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L4.5 13.5H11l-1 8.5L19.5 10H13z"/></svg>',book:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M19 3v18"/></svg>',gear:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 0 1-4 0v-.1A1.6 1.6 0 0 0 7 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 3.5 14H3a2 2 0 0 1 0-4h.1A1.6 1.6 0 0 0 4.6 7a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 10 3.5V3a2 2 0 0 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.7H21a2 2 0 0 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>',build:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14"/></svg>',out:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>',plus:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>',check:'<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="#fff" stroke-width="3.5"><path d="M20 6L9 17l-5-5"/></svg>'};
+function renderNav(){
+  const tabs=[['jobbuilder','Job Builder',ICO.bolt],['book','Price Book',ICO.book]];
+  if(ROLE==='master'||ROLE==='owner') tabs.push(['admin','Pricing',ICO.gear]);
+  if(ROLE==='master') tabs.push(['master','Master',ICO.build]);
+  document.getElementById('topnav').innerHTML=tabs.map(([id,l,ic])=>`<button class="${TAB===id?'active':''}" onclick="go('${id}')">${ic}<span>${l}</span></button>`).join('')+`<button onclick="logout()" title="Sign out">${ICO.out}</button>`;
+  document.getElementById('companyName').textContent=co().name;
+}
+function go(t){ TAB=t; render(); window.scrollTo(0,0); }
+function render(){ const v=document.getElementById('view');
+  if(TAB==='jobbuilder')v.innerHTML=renderJB();
+  else if(TAB==='book')v.innerHTML=renderBook();
+  else if(TAB==='admin')v.innerHTML=renderAdmin();
+  else if(TAB==='master')v.innerHTML=renderMaster();
+  renderNav();
+}
+
+/* ================= VIEW: JOB BUILDER ================= */
+function shade(hex,pct){ const n=parseInt(hex.slice(1),16);let r=(n>>16)&255,g=(n>>8)&255,b=n&255;r=Math.max(0,Math.min(255,Math.round(r+r*pct/100)));g=Math.max(0,Math.min(255,Math.round(g+g*pct/100)));b=Math.max(0,Math.min(255,Math.round(b+b*pct/100)));return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1); }
+function renderJB(){
+  if(jb.presented) return renderReceipt();
+  const c=co();
+  const hasIssues=jb.issues.length>0;
+  const iconColors=['#6b7280','#2f6fb0','#c77b30','#2e7d5b','#8a5cc4','#c8382e'];
+  return `
+  <div class="page-head"><h2>What's going on at this job?</h2>
+    <p>Type it like you'd say it. Every item gets matched to your price book, then bundled into whole-visit options.</p></div>
+
+  <textarea class="jb-input" id="jbText" placeholder="e.g.  Replace the garbage disposal, the drain under the kitchen sink needs repiping, and the front hose bib is leaking"
+    oninput="jb.text=this.value">${esc(jb.text)}</textarea>
+  <div class="jb-hintrow">
+    <span class="aibadge">${aiReady()?'✦ AI on':'✦ Smart match'}</span>
+    <button class="ex-chip" onclick="loadExample()">Try the Sally example</button>
+    <button class="btn btn-red btn-sm" style="margin-left:auto" onclick="runAnalyze()" ${jb.reading?'disabled':''}>${jb.reading?'✦ Reading…':'Read the job →'}</button>
+  </div>
+
+  ${hasIssues?`
+  <div class="worksheet">
+    <div class="section-title">Detected — ${jb.issues.length} item${jb.issues.length>1?'s':''} · tap to fix a match</div>
+    ${jb.issues.map((iss,i)=>{
+      const col=iconColors[i%iconColors.length];
+      if(iss.custom){ return `<div class="ws-row"><div class="ws-ico" style="background:#2e7d5b">${i+1}</div><div class="ws-main"><div class="ws-issue">${esc(iss.phrase)}</div><div class="ws-match">Custom task · ${esc(iss.custom.name)} · ${fmt(taskPrice(iss.custom,c.settings))}</div></div><button class="ws-x" onclick="removeIssue(${i})">✕</button></div>`; }
+      if(iss.group){ const g=GROUPS[iss.group]; const n=groupTasks(iss.group).length; return `<div class="ws-row"><div class="ws-ico" style="background:${col}">${i+1}</div><div class="ws-main"><div class="ws-issue">${esc(iss.phrase)}</div><div class="ws-match">Matched → ${esc(g.cat)} · ${esc(g.label)} · ${n} price point${n>1?'s':''}</div></div><button class="btn btn-ghost btn-sm" onclick="reassign(${i})">Change</button><button class="ws-x" onclick="removeIssue(${i})">✕</button></div>`; }
+      return `<div class="ws-row unmatched"><div class="ws-ico" style="background:#d4a017">?</div><div class="ws-main"><div class="ws-issue">${esc(iss.phrase)}</div><div class="ws-match" style="color:#8a6d00">Not in your book yet — build it on the fly</div></div><button class="btn btn-red btn-sm" onclick="buildFor(${i})">${ICO.plus} Build task</button><button class="ws-x" onclick="removeIssue(${i})">✕</button></div>`;
+    }).join('')}
+    <div style="display:flex;justify-content:center;margin-top:14px">
+      <button class="btn btn-red btn-lg" onclick="doBuild()">Build the options →</button>
+    </div>
+  </div>`:''}
+
+  ${jb.options?renderOptions():''}
+  `;
+}
+function loadExample(){ jb.text="Replace the garbage disposal, the drain under the kitchen sink needs repiping, and the front hose bib is leaking"; jb.options=null; render(); }
+async function runAnalyze(){
+  if(!jb.text.trim()){toast('Type the job first');return;}
+  if(aiReady()){
+    jb.reading=true; jb.options=null; render();
+    try{ jb.issues=await aiParse(jb.text); }
+    catch(e){ analyze(); toast('AI error — used offline match'); }
+    jb.reading=false;
+  } else { analyze(); }
+  jb.options=null; render();
+}
+function doBuild(){ buildOptions(); if(!jb.options){toast('No matched items to build from');return;} render(); setTimeout(()=>{const el=document.getElementById('optsAnchor');if(el)el.scrollIntoView({behavior:'smooth'});},60); }
+function removeIssue(i){ jb.issues.splice(i,1); jb.options=null; render(); }
+
+function renderOptions(){
+  const c=co(),s=c.settings;
+  enforceTierOrder();
+  const layout=s.optionLayout||'stacked';
+  const N=jb.options.length;
+  let cardArr=jb.options.map((opt,oi)=>{
+    const t=opt.tier; const total=optionTotal(opt); const feat=t.featured;
+    const f=(layout==='stacked'&&N>1)?(0.74+0.26*(oi/(N-1))).toFixed(3):1;
+    const hero=t.gold?`linear-gradient(150deg,#2b3138,#1f2429 55%,#a97c1e)`:`linear-gradient(155deg,${shade(t.color,14)},${shade(t.color,-14)})`;
+    const btn=t.gold?'background:linear-gradient(160deg,#c8952a,#a97c1e)':`background:${t.color}`;
+    return `<div class="opt ${feat?'featured':''}" style="border-color:${t.color};--f:${f}">
+      ${feat?'<span class="badge">Most Popular</span>':''}
+      <div class="hero" style="background:${hero}">
+        <div class="tier-name">${esc(t.name)}</div>
+        <div class="tier-tag">${esc(t.tag)}</div>
+        <div class="price">${fmt(total)}</div>
+        <div class="price-sub">${s.showMonthly?`or ~${fmt(monthly(total,s.financeMonths))}/mo financing`:'flat rate — all in'}</div>
+      </div>
+      <div class="opt-body">
+        <ul class="lines">
+          ${opt.lines.map((l,li)=>{ const tk=taskById(l.taskId); if(!tk)return''; return `<li class="li"><div class="lt"><span class="lname">${esc(tk.name)}${tk.oneOff?' <span class="editflag">edited</span>':''}</span><span class="lprice">${fmt(effLine(l))}</span></div><div class="ldesc">${esc(tk.desc||genDesc(tk))}</div>${l.adjusted?'<div class="ldesc" style="color:#8a6d00">↑ nudged up to keep tiers in order</div>':''}<div class="lact">${l.groupKey?`<span class="lswap" style="color:${t.color}" onclick="swapLine(${oi},${li})">swap ⌄</span>`:''}<span class="lswap" style="color:${t.color}" onclick="editLine(${oi},${li})">edit ✎</span></div></li>`; }).join('')}
+        </ul>
+        <button class="btn btn-block" style="${btn};color:#fff" onclick="choose(${oi})">Choose ${esc(t.name)}</button>
+      </div></div>`;
+  });
+  if(layout==='stacked') cardArr=cardArr.reverse(); /* highest price on top, biggest card */
+  const cards=cardArr.join('');
+  return `<div id="optsAnchor" style="height:1px"></div>
+    <div class="page-head" style="margin:26px 0 12px;display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap">
+      <div><h2>The options</h2><p>${jb.options.length} whole-visit choices — one flat price each. Swap any line to fine-tune.</p></div>
+      <div style="margin-left:auto;display:flex;gap:4px;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:4px">
+        <button class="seg ${layout==='grid'?'on':''}" onclick="setLayout('grid')">Side-by-side</button>
+        <button class="seg ${layout==='stacked'?'on':''}" onclick="setLayout('stacked')">Stacked</button>
+      </div>
+    </div>
+    ${jb.options.some(o=>o.outOfOrder)?`<div class="callout" style="margin-bottom:14px">⚠ A tier is priced at or below the one beneath it. Adjust a line, or turn on <b>Keep tiers in price order</b> under Pricing to fix this automatically.</div>`:''}
+    <div class="options ${layout==='stacked'?'stacked':''}">${cards}</div>
+    <p style="text-align:center;color:var(--mute);font-size:12.5px;margin-top:20px">Each option is one guaranteed price · itemized for the customer · ${esc(c.name)} · licensed &amp; insured</p>`;
+}
+
+/* swap a line item across the tapped option */
+function swapLine(oi,li){
+  const opt=jb.options[oi], line=opt.lines[li]; const tasks=groupTasks(line.groupKey); const s=co().settings;
+  openModal('Choose the '+esc(GROUPS[line.groupKey].label), tasks.map(t=>`<div class="pick-item ${t.id===line.taskId?'sel':''}" onclick="pickSwap(${oi},${li},'${t.id}')"><div><div class="pn">${esc(t.name)}</div>${t.tier?`<div class="mini">${esc(t.tier)} grade</div>`:''}</div><div class="pp">${fmt(taskPrice(t,s))}</div></div>`).join(''));
+}
+function pickSwap(oi,li,id){ jb.options[oi].lines[li].taskId=id; closeModal(); render(); }
+
+/* edit a task on the fly */
+function editLine(oi,li){ openTaskEdit(jb.options[oi].lines[li].taskId, {oi,li}); }
+function editBookTask(id){ openTaskEdit(id, null); }
+function openTaskEdit(id, lineCtx){
+  const s=co().settings; const t=taskById(id); if(!t) return;
+  window.__editCtx={id,lineCtx}; window.__etTouched=false;
+  const glabel=GROUPS[t.g]?GROUPS[t.g].label:'';
+  const hrs=(t.laborHours!=null?t.laborHours:''); const mat=(t.materialCost!=null?t.materialCost:'');
+  openModal('Edit task'+(lineCtx?' — on the fly':''), `
+    <div class="field"><label>Task name (what the customer sees)</label><input id="etName" value="${esc(t.name)}"></div>
+    <div class="row2">
+      <div class="field"><label>Labor time (hours)</label><input id="etHrs" type="number" step="0.25" value="${hrs}" placeholder="e.g. 1.5" oninput="etRecalc()"></div>
+      <div class="field"><label>Materials cost</label><div class="inline-affix pre-pad"><span class="pre">$</span><input id="etMat" type="number" step="0.01" value="${mat}" placeholder="parts" oninput="etRecalc()"></div></div>
+    </div>
+    <div class="field"><label>Price — auto-calculates from labor + materials, or type your own</label><div class="inline-affix pre-pad"><span class="pre">$</span><input id="etPrice" type="number" step="1" value="${Math.round(taskPrice(t,s))}" oninput="window.__etTouched=true"></div><div class="hint" id="etCalc"></div></div>
+    <div class="field"><label style="display:flex;align-items:center;gap:8px">Description ${aiReady()?`<button class="btn btn-ghost btn-sm" style="padding:4px 10px" onclick="aiFillDesc('etDesc',document.getElementById('etName').value,'${esc(glabel)}',this)">✦ Write with AI</button>`:''}</label><textarea id="etDesc" rows="3">${esc(t.desc||genDesc(t))}</textarea></div>
+    ${lineCtx?`<div style="display:flex;gap:10px"><button class="btn btn-ghost btn-block" onclick="applyEdit('job')">Use for this job only</button><button class="btn btn-red btn-block" onclick="applyEdit('book')">Save to price book</button></div><p class="mini" style="text-align:center;margin:10px 0 0">"This job only" leaves your book untouched · "Save to price book" updates it everywhere.</p>`
+    :`<div style="display:flex;gap:10px"><button class="btn btn-ghost btn-block" onclick="closeModal()">Cancel</button><button class="btn btn-red btn-block" onclick="applyEdit('book')">Save changes</button></div>`}`);
+  etRecalc(true);
+}
+function etRecalc(initial){
+  const s=co().settings; const hrs=parseFloat(document.getElementById('etHrs').value)||0; const mat=parseFloat(document.getElementById('etMat').value)||0;
+  const calcEl=document.getElementById('etCalc'); if(!calcEl) return;
+  if(hrs>0||mat>0){ const mk=markupPctForCost(mat,s); const computed=priceCustom(hrs,mat,s);
+    if(!initial && !window.__etTouched){ document.getElementById('etPrice').value=Math.round(computed); }
+    calcEl.textContent=`Engine: ${hrs} hr × ${fmt(s.laborRate)} labor + ${fmt2(mat)} parts × ${(1+mk/100).toFixed(2)} (${mk}%) = ${fmt(computed)}`;
+  } else calcEl.textContent='';
+}
+function applyEdit(mode){
+  const {id,lineCtx}=window.__editCtx; const s=co().settings;
+  const name=document.getElementById('etName').value.trim()||'Task';
+  const price=parseFloat(document.getElementById('etPrice').value)||0;
+  const hrs=parseFloat(document.getElementById('etHrs').value)||0;
+  const mat=parseFloat(document.getElementById('etMat').value)||0;
+  const desc=document.getElementById('etDesc').value.trim();
+  const hasEngine=(hrs>0||mat>0);
+  const computed=priceCustom(hrs,mat,s);
+  const engineDriven=hasEngine && Math.round(price)===Math.round(computed); // price follows rates
+  const patch={ name, desc, price, custom:true, priceLocked:!engineDriven,
+                laborHours:hasEngine?hrs:null, materialCost:hasEngine?mat:null };
+  if(mode==='book'){
+    let t=co().book.find(x=>x.id===id);
+    if(t){ Object.assign(t,patch); }
+    else { const ov=jb.overrides[id]; co().book.push(Object.assign({id:newId('t'),g:ov?ov.g:'custom',cost:ov?ov.cost:mat,tier:ov?ov.tier:''},patch)); if(lineCtx) jb.options[lineCtx.oi].lines[lineCtx.li].taskId=co().book[co().book.length-1].id; }
+    saveState();
+  } else {
+    const orig=taskById(id);
+    const ov=Object.assign({id:newId('ov'), g:orig.g, cost:hasEngine?mat:orig.cost, tier:orig.tier, oneOff:true}, patch);
+    jb.overrides[ov.id]=ov;
+    if(lineCtx) jb.options[lineCtx.oi].lines[lineCtx.li].taskId=ov.id;
+  }
+  closeModal(); render(); toast(mode==='book'?'Saved to price book':'Updated for this job');
+}
+
+/* reassign an issue to a different group */
+function reassign(i){
+  openModal('What kind of job is this?', `<p class="mini" style="margin:0 0 12px">"${esc(jb.issues[i].phrase)}"</p>`+
+    Object.keys(GROUPS).map(k=>`<div class="pick-item ${jb.issues[i].group===k?'sel':''}" onclick="setGroup(${i},'${k}')"><div class="pn">${esc(GROUPS[k].label)}</div><div class="mini">${esc(GROUPS[k].cat)}</div></div>`).join('')+
+    `<div class="pick-item" onclick="closeModal();buildFor(${i})" style="border-style:dashed"><div class="pn" style="color:var(--red)">＋ None of these — build a custom task</div></div>`);
+}
+function setGroup(i,k){ jb.issues[i].group=k; jb.issues[i].custom=null; closeModal(); jb.options=null; render(); }
+
+/* build a custom task for an unmatched (or any) issue */
+function buildFor(i){ openCustomTask(jb.issues[i].phrase, (task)=>{ jb.issues[i].custom=task; jb.issues[i].group=null; jb.options=null; render(); }); }
+
+function choose(oi){ jb.chosen=oi; const opt=jb.options[oi]; const t=opt.tier; const total=optionTotal(opt);
+  openModal('Confirm selection', `<p style="margin:0 0 14px;color:var(--mute)">Sally chose <b style="color:var(--ink)">${esc(t.name)}</b> — <b style="color:var(--ink)">${fmt(total)}</b> for ${opt.lines.length} item${opt.lines.length>1?'s':''}. Lock it in?</p><div style="display:flex;gap:10px"><button class="btn btn-ghost btn-block" onclick="closeModal()">Keep looking</button><button class="btn btn-red btn-block" onclick="closeModal();jb.presented=true;render();window.scrollTo(0,0)">Confirm &amp; Present</button></div>`);
+}
+function renderReceipt(){
+  const c=co(),s=c.settings; const opt=jb.options[jb.chosen]; const t=opt.tier; const total=optionTotal(opt);
+  const grad=t.gold?`linear-gradient(120deg,${t.color},#3a4048)`:`linear-gradient(120deg,${t.color},${shade(t.color,-16)})`;
+  return `<div class="receipt">
+    <div class="r-hero" style="background:${grad}">
+      <div class="rt">${esc(c.name)} · Agreed Scope</div>
+      <div class="rn">${esc(t.name)}</div>
+      <div class="rp">${fmt(total)}</div>
+      <div style="font-size:12px;opacity:.85;margin-top:4px">${opt.lines.length} items · one flat price</div>
+    </div>
+    <div class="r-body">
+      ${opt.lines.map(l=>{const tk=taskById(l.taskId);return tk?`<div class="line"><span><b>${esc(tk.name)}</b><div class="mini" style="margin-top:2px">${esc(genDesc(tk))}</div></span><span class="mono">${fmt(taskPrice(tk,s))}</span></div>`:'';}).join('')}
+      ${s.showMonthly?`<div class="line"><span class="mini">Financing available</span><span class="mini">~${fmt(monthly(total,s.financeMonths))}/mo · ${s.financeMonths}mo</span></div>`:''}
+      <div class="line total"><span>Total (flat rate)</span><span class="mono">${fmt(total)}</span></div>
+      <div style="display:flex;gap:10px;margin-top:18px">
+        <button class="btn btn-ghost btn-block" onclick="jb.presented=false;render()">← Edit</button>
+        <button class="btn btn-dark btn-block" onclick="newJob()">New Job</button>
+      </div>
+      <p style="text-align:center;font-size:11.5px;color:var(--mute);margin:14px 0 0">Price valid 30 days · workmanship guaranteed · demo — nothing is sent anywhere.</p>
+    </div></div>`;
+}
+function newJob(){ jb={text:'',issues:[],options:null,chosen:null,presented:false,overrides:{}}; render(); window.scrollTo(0,0); }
+
+/* ================= CUSTOM TASK BUILDER ================= */
+function openCustomTask(prefill, onSave){
+  const c=co();
+  window.__ctSave=onSave;
+  openModal('Build a task — ready this visit', `
+    <div class="field"><label>What is it? (say it plain)</label>
+      <input id="ctName" value="${esc(prefill||'')}" placeholder="e.g. Reset & reseal wobbling toilet, new wax ring"></div>
+    <div class="row2">
+      <div class="field"><label>Materials cost</label><div class="inline-affix pre-pad"><span class="pre">$</span><input id="ctMat" type="number" step="0.01" placeholder="18" oninput="ctPreview()"></div></div>
+      <div class="field"><label>Labor time (hours)</label><input id="ctHrs" type="number" step="0.25" placeholder="0.75" oninput="ctPreview()"></div>
+    </div>
+    <div class="field"><label>Job group</label>
+      <select id="ctGroup">${Object.keys(GROUPS).map(k=>`<option value="${k}">${esc(GROUPS[k].label)}</option>`).join('')}<option value="">— General / one-off —</option></select></div>
+    <div class="field"><label style="display:flex;align-items:center;gap:8px">Description ${aiReady()?`<button class="btn btn-ghost btn-sm" style="padding:4px 10px" onclick="aiFillDesc('ctDesc',document.getElementById('ctName').value,document.getElementById('ctGroup').selectedOptions[0].text,this)">✦ Write with AI</button>`:''}</label><textarea id="ctDesc" rows="2" placeholder="Optional — what the customer sees${aiReady()?', or let AI write it':''}"></textarea></div>
+    <div class="card" style="box-shadow:none;background:#fbfcfd;padding:15px;margin-bottom:14px">
+      <div class="section-title" style="margin-bottom:6px">Priced instantly</div>
+      <div id="ctPrice" style="font-size:28px;font-weight:900">$0</div>
+      <div id="ctCalc" class="mini"></div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-ghost btn-block" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-red btn-block" onclick="saveCustomTask()">Add task</button>
+    </div>
+    <p class="mini" style="text-align:center;margin:12px 0 0">Saved to this company's book. Master admin can roll it up to every licensee.</p>`);
+}
+function ctPreview(){
+  const s=co().settings; const mat=parseFloat(document.getElementById('ctMat').value)||0; const hrs=parseFloat(document.getElementById('ctHrs').value)||0;
+  const price=priceCustom(hrs,mat,s); const mk=markupPctForCost(mat,s);
+  document.getElementById('ctPrice').textContent=fmt(price);
+  document.getElementById('ctCalc').textContent=`${hrs} hr × ${fmt(s.laborRate)} labor + ${fmt2(mat)} parts × ${(1+mk/100).toFixed(2)} markup (${mk}%)`;
+}
+function saveCustomTask(){
+  const c=co(),s=c.settings;
+  const name=document.getElementById('ctName').value.trim()||'Custom Task';
+  const mat=parseFloat(document.getElementById('ctMat').value)||0;
+  const hrs=parseFloat(document.getElementById('ctHrs').value)||0;
+  const g=document.getElementById('ctGroup').value;
+  const desc=((document.getElementById('ctDesc')||{}).value||'').trim();
+  const task={ id:newId('ct'), g:g||'custom', name, custom:true, laborHours:hrs, materialCost:mat, price:priceCustom(hrs,mat,s), cost:mat, tier:'', desc:desc||undefined };
+  c.book.push(task); saveState();
+  closeModal();
+  if(window.__ctSave){ window.__ctSave(task); window.__ctSave=null; toast('Task built & added to job'); }
+  else { toast('Task added to price book'); render(); }
+}
+
+/* ================= VIEW: PRICE BOOK ================= */
+let bookCat='All', bookSearch='';
+function renderBook(){
+  const c=co();
+  const cats=['All',...Array.from(new Set(Object.values(GROUPS).map(g=>g.cat)))];
+  const q=bookSearch.toLowerCase();
+  const groupsInView=Object.keys(GROUPS).filter(k=>{
+    const g=GROUPS[k]; if(bookCat!=='All'&&g.cat!==bookCat)return false;
+    if(q&&!(g.label.toLowerCase().includes(q)||g.cat.toLowerCase().includes(q)))return false;
+    return true;
+  });
+  // include a 'custom' bucket
+  const customTasks=c.book.filter(t=>t.g==='custom');
+  return `
+  <div class="page-head"><h2>Price Book</h2><p>${c.book.length} tasks across your job groups. Real Profit Rhino prices — plus anything you build in the field.</p></div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px">
+    <input placeholder="Search job groups…" value="${esc(bookSearch)}" oninput="bookSearch=this.value;document.getElementById('view').innerHTML=renderBook()" style="flex:1;min-width:200px;padding:12px 14px;border:1.5px solid var(--line);border-radius:11px">
+    <button class="btn btn-red btn-sm" onclick="openCustomTask('',null)">${ICO.plus} Build a task</button>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
+    ${cats.map(ct=>`<button class="pillcat" style="cursor:pointer;${bookCat===ct?'background:var(--charcoal);color:#fff':''}" onclick="bookCat='${esc(ct)}';document.getElementById('view').innerHTML=renderBook()">${esc(ct)}</button>`).join('')}
+  </div>
+  <div class="job-grid">
+    ${groupsInView.map(k=>{ const g=GROUPS[k]; const ts=groupTasks(k); if(!ts.length)return ''; const lo=taskPrice(ts[0],c.settings),hi=taskPrice(ts[ts.length-1],c.settings);
+      return `<button class="job-card" onclick="openGroup('${k}')"><span class="jc-cat">${esc(g.cat)}</span><span class="jc-name">${esc(g.label)}</span><span class="jc-meta">${ts.length} tasks · ${fmt(lo)}${lo!==hi?'–'+fmt(hi):''}</span></button>`;
+    }).join('')}
+    ${(bookCat==='All'&&customTasks.length)?`<button class="job-card" onclick="openGroup('custom')" style="border-color:#2e7d5b"><span class="jc-cat" style="color:#2e7d5b">Field-Built</span><span class="jc-name">Your Custom Tasks</span><span class="jc-meta">${customTasks.length} task${customTasks.length>1?'s':''}</span></button>`:''}
+  </div>`;
+}
+function openGroup(k){
+  const c=co(),s=c.settings; const label=k==='custom'?'Your Custom Tasks':GROUPS[k].label;
+  const ts=c.book.filter(t=>t.g===k).sort((a,b)=>taskPrice(a,s)-taskPrice(b,s));
+  openModal(esc(label), `<table class="tbl"><thead><tr><th>Task</th><th>Cost</th><th>Price</th><th></th></tr></thead><tbody>
+    ${ts.map(t=>`<tr><td><b>${esc(t.name)}</b>${t.tier?` <span class="pillcat">${esc(t.tier)}</span>`:''}${t.custom?' <span class="pillcat" style="background:#e9f6ef;color:#2e7d5b">field-built</span>':''}</td><td class="mono mini">${fmt2(t.cost||0)}</td><td class="mono"><b>${fmt(taskPrice(t,s))}</b></td><td style="text-align:right"><button class="btn btn-ghost btn-sm" onclick="editBookTask('${t.id}')">Edit</button></td></tr>`).join('')}
+  </tbody></table><div style="margin-top:14px;text-align:right"><button class="btn btn-red btn-sm" onclick="closeModal();openCustomTask('',null)">${ICO.plus} Build a task</button></div>`);
+}
+
+/* ================= VIEW: ADMIN (pricing engine) ================= */
+function renderAdmin(){
+  const c=co(),s=c.settings;
+  return `
+  <div class="page-head"><h2>Pricing</h2><p>These rates power your on-the-fly custom tasks and the option builder. Editing <b>${esc(c.name)}</b>.</p></div>
+  <div class="stat-grid" style="margin-bottom:22px">
+    <div class="stat"><div class="sv">${fmt(s.laborRate)}</div><div class="sl">Labor rate / hr (custom tasks)</div></div>
+    <div class="stat"><div class="sv">${s.useSliding?'Sliding':s.flatMarkup+'%'}</div><div class="sl">Materials markup</div></div>
+    <div class="stat"><div class="sv">${c.book.length}</div><div class="sl">Tasks in book</div></div>
+    <div class="stat"><div class="sv">${s.numOptions}</div><div class="sl">Options per job</div></div>
+  </div>
+
+  <div class="card card-pad" style="margin-bottom:22px">
+    <div class="section-title">Rates</div>
+    <div class="row3">
+      <div class="field"><label>Labor rate / hour</label><div class="inline-affix pre-pad"><span class="pre">$</span><input type="number" value="${s.laborRate}" onchange="setS('laborRate',this.value)"></div><div class="hint">Applied to field-built tasks</div></div>
+      <div class="field"><label>Sales tax</label><div class="inline-affix"><input type="number" value="${s.taxPct}" onchange="setS('taxPct',this.value)"><span class="suf">%</span></div></div>
+      <div class="field"><label>Round prices to</label><select onchange="setS('roundTo',this.value)">${[1,5,10,25].map(r=>`<option value="${r}" ${s.roundTo==r?'selected':''}>$${r}</option>`).join('')}</select></div>
+    </div>
+    <div class="row3">
+      <div class="field"><label>Options per job</label><select onchange="setS('numOptions',this.value)">${[2,3,4,5].map(n=>`<option value="${n}" ${s.numOptions==n?'selected':''}>${n} options</option>`).join('')}</select></div>
+      <div class="field"><label>Show financing / mo</label><select onchange="setS('showMonthly',this.value)"><option value="1" ${s.showMonthly?'selected':''}>Yes</option><option value="0" ${!s.showMonthly?'selected':''}>No</option></select></div>
+      <div class="field"><label>Financing months</label><input type="number" value="${s.financeMonths}" onchange="setS('financeMonths',this.value)"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Keep tiers in price order</label><select onchange="setS('enforceOrder',this.value)"><option value="1" ${s.enforceOrder!==false?'selected':''}>Yes — auto-adjust so each stays above the one below</option><option value="0" ${s.enforceOrder===false?'selected':''}>No — just warn me</option></select><div class="hint">Prevents a lower tier from being priced above a higher one after edits.</div></div>
+      <div class="field"><label>Minimum gap between tiers</label><div class="inline-affix"><input type="number" value="${s.tierGapPct!=null?s.tierGapPct:12}" onchange="setS('tierGapPct',this.value)"><span class="suf">%</span></div><div class="hint">When tiers get nudged, keep at least this much space between them.</div></div>
+    </div>
+  </div>
+
+  <div class="card card-pad" style="margin-bottom:22px">
+    <div style="display:flex;align-items:center;margin-bottom:6px"><div class="section-title" style="margin:0">Materials Markup — Sliding Scale</div>
+      <label style="margin-left:auto;font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px">Use sliding scale<input type="checkbox" ${s.useSliding?'checked':''} onchange="setS('useSliding',this.checked?'1':'0')"></label></div>
+    <p class="mini" style="margin:0 0 12px">Pulled from your Housecall Pro settings — cheap parts marked up harder, big-ticket parts less. Applied to field-built tasks.</p>
+    ${s.useSliding?`<table class="tbl"><thead><tr><th>Cost from</th><th>Cost to</th><th>Markup %</th><th>Sell multiple</th></tr></thead><tbody>
+      ${s.markupTiers.map((t,i)=>{const from=i===0?0:s.markupTiers[i-1].to;return `<tr><td class="mono">${fmt2(from+ (i===0?0:0.01))}</td><td class="mono">${t.to==null?'—':fmt2(t.to)}</td><td><input type="number" value="${t.pct}" onchange="setMarkup(${i},this.value)" style="width:90px;padding:6px 8px;border:1.5px solid var(--line);border-radius:8px"><span style="color:var(--mute)">%</span></td><td class="mini mono">×${(1+t.pct/100).toFixed(2)}</td></tr>`;}).join('')}
+    </tbody></table>`:`<div class="field" style="max-width:220px"><label>Flat markup on all materials</label><div class="inline-affix"><input type="number" value="${s.flatMarkup}" onchange="setS('flatMarkup',this.value)"><span class="suf">%</span></div></div>`}
+  </div>
+
+  <div class="card card-pad">
+    <div class="section-title">Option Tiers &amp; Branding</div>
+    <p class="mini" style="margin:-4px 0 12px">Names, taglines and colors the customer sees. Legally distinct from any competitor.</p>
+    <div style="display:grid;grid-template-columns:34px 1fr 1fr 34px;gap:10px;font-size:11px;font-weight:800;color:var(--mute);text-transform:uppercase;letter-spacing:.5px;padding-bottom:6px"><span>Color</span><span>Name</span><span>Tagline</span><span></span></div>
+    ${c.tiers.map((t,i)=>`<div style="display:grid;grid-template-columns:34px 1fr 1fr 34px;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)">
+      <input type="color" value="${t.color}" onchange="setTier(${i},'color',this.value)" style="width:34px;height:34px;padding:2px;border-radius:8px">
+      <input value="${esc(t.name)}" onchange="setTier(${i},'name',this.value)" style="padding:9px 11px;border:1.5px solid var(--line);border-radius:9px">
+      <input value="${esc(t.tag)}" onchange="setTier(${i},'tag',this.value)" style="padding:9px 11px;border:1.5px solid var(--line);border-radius:9px">
+      <button class="ws-x" onclick="removeTier(${i})" ${c.tiers.length<=2?'disabled style=opacity:.3':''}>✕</button></div>`).join('')}
+    <button class="btn btn-ghost btn-sm" style="margin-top:12px" onclick="addTier()">${ICO.plus} Add tier</button>
+  </div>
+
+  <div class="card card-pad" style="margin-top:22px">
+    <div class="section-title">AI Assist <span style="color:var(--mute);font-weight:600;text-transform:none;letter-spacing:0">— optional</span></div>
+    <p class="mini" style="margin:-4px 0 12px">Add your Anthropic API key to let the app read messy job notes and write customer descriptions. The key is stored only on this device and calls go straight to Anthropic. Everything works offline without it.</p>
+    <div class="row2">
+      <div class="field"><label>AI matching &amp; writing</label><select onchange="setAI('enabled',this.value)"><option value="0" ${!(DB.ai&&DB.ai.enabled)?'selected':''}>Off — use offline matching</option><option value="1" ${(DB.ai&&DB.ai.enabled)?'selected':''}>On</option></select></div>
+      <div class="field"><label>Model</label><input value="${esc((DB.ai&&DB.ai.model)||'claude-3-5-haiku-latest')}" onchange="setAI('model',this.value)"></div>
+    </div>
+    <div class="field"><label>Anthropic API key</label><input type="password" value="${esc((DB.ai&&DB.ai.key)||'')}" placeholder="sk-ant-..." onchange="setAI('key',this.value)"><div class="hint">Stored only on this device. Get one at console.anthropic.com.</div></div>
+    <div style="display:flex;align-items:center;gap:12px"><button class="btn btn-ghost btn-sm" onclick="testAI()">Test connection</button><span id="aiStatus" class="mini"></span></div>
+  </div>
+
+  <div class="card card-pad" style="margin-top:22px">
+    <div class="section-title">Sync</div>
+    <p class="mini" style="margin:-4px 0 8px">Your price book, rates &amp; tiers sync automatically to the cloud and to every device signed into your shop — edits save as you go.</p>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="syncNow()">Sync now (pull latest)</button><span id="syncStatus" class="mini"></span></div>
+  </div>`;
+}
+function setS(k,v){ const s=co().settings;
+  if(k==='showMonthly'||k==='useSliding'||k==='enforceOrder') s[k]=(v==='1'||v===true);
+  else if(k==='numOptions'){ s.numOptions=parseInt(v); s.spread=linspace(0.3,0.92,s.numOptions); ensureTiers(co(),s.numOptions); }
+  else if(['roundTo','financeMonths'].includes(k)) s[k]=parseInt(v)||1;
+  else s[k]=parseFloat(v)||0;
+  saveState(); jb.options=null; render(); toast('Saved');
+}
+function setMarkup(i,v){ co().settings.markupTiers[i].pct=parseFloat(v)||0; saveState(); toast('Markup updated'); }
+function setTier(i,k,v){ co().tiers[i][k]=v; saveState(); if(k==='color')render(); jb.options=null; toast('Updated'); }
+function addTier(){ const c=co(); c.tiers.push({key:newId('tr'),name:'New Tier',tag:'Describe it',color:'#7a869a'}); if(c.tiers.length>c.settings.numOptions){c.settings.numOptions=Math.min(4,c.tiers.length);c.settings.spread=linspace(0.35,0.9,c.settings.numOptions);} saveState(); render(); }
+function removeTier(i){ const c=co(); if(c.tiers.length<=2){toast('Keep at least 2');return;} c.tiers.splice(i,1); if(c.settings.numOptions>c.tiers.length){c.settings.numOptions=c.tiers.length;c.settings.spread=linspace(0.35,0.9,c.settings.numOptions);} saveState(); render(); }
+
+/* ================= VIEW: MASTER ================= */
+function renderMaster(){
+  return `<div class="page-head"><h2>Master Admin</h2><p>OptionPush — every shop on the platform. Your licensing layer.</p></div>
+  <div class="stat-grid" style="margin-bottom:22px">
+    <div class="stat"><div class="sv">${DB.companies.length}</div><div class="sl">Licensed companies</div></div>
+    <div class="stat"><div class="sv">${DB.companies.reduce((a,c)=>a+c.book.length,0)}</div><div class="sl">Total tasks</div></div>
+    <div class="stat"><div class="sv">${DB.companies.reduce((a,c)=>a+c.book.filter(t=>t.custom).length,0)}</div><div class="sl">Field-built tasks</div></div>
+  </div>
+  <div class="card card-pad">
+    <div style="display:flex;align-items:center;margin-bottom:14px"><div class="section-title" style="margin:0">Shops</div><a class="btn btn-ghost btn-sm" style="margin-left:auto;text-decoration:none" href="admin.html" target="_blank">Manage in Admin Console ↗</a></div>
+    <table class="tbl"><thead><tr><th>Company</th><th>Labor</th><th>Markup</th><th>Tasks</th><th></th></tr></thead><tbody>
+    ${DB.companies.map(c=>`<tr><td><b>${esc(c.name)}</b>${c.id===DB.activeCompanyId?' <span class="pillcat" style="background:#e6f4ec;color:#2e7d5b">ACTIVE</span>':''}</td><td class="mono">${fmt(c.settings.laborRate)}</td><td class="mono">${c.settings.useSliding?'Sliding':c.settings.flatMarkup+'%'}</td><td>${c.book.length}</td><td style="text-align:right"><button class="btn btn-ghost btn-sm" onclick="switchCompany('${c.id}')">Open</button></td></tr>`).join('')}
+    </tbody></table>
+    <p class="mini" style="margin-top:14px">Each shop is isolated — own rates, markup, tiers, and book. Add, invite, or suspend shops in the OptionPush Admin Console.</p>
+  </div>`;
+}
+function switchCompany(id){ DB.activeCompanyId=id; saveState(); TAB='jobbuilder'; newJob(); toast('Now on '+co().name); }
+function addCompany(){ openModal('Add licensed company', `<div class="field"><label>Company name</label><input id="ncName" placeholder="e.g. Peachtree Plumbing"></div><div class="field"><label>Start from</label><select id="ncClone"><option value="tgp">Clone True Grit's book (recommended)</option><option value="blank">Blank book</option></select></div><div style="display:flex;gap:10px;margin-top:16px"><button class="btn btn-ghost btn-block" onclick="closeModal()">Cancel</button><button class="btn btn-red btn-block" onclick="doAddCompany()">Create</button></div>`); }
+function doAddCompany(){ const name=document.getElementById('ncName').value.trim(); if(!name){toast('Enter a name');return;} const clone=document.getElementById('ncClone').value; const base=clone==='blank'?null:(DB.companies.find(c=>c.id==='tgp')||DB.companies[0]); const nc=newCompany(newId('co'),name); if(base){nc.settings=JSON.parse(JSON.stringify(base.settings));nc.tiers=JSON.parse(JSON.stringify(base.tiers));nc.book=JSON.parse(JSON.stringify(base.book));} else {nc.book=[];} DB.companies.push(nc); DB.activeCompanyId=nc.id; saveState(); closeModal(); TAB='jobbuilder'; newJob(); toast('Company created'); }
+function deleteCompany(id){ if(DB.companies.length<=1){toast('Keep at least one');return;} openModal('Remove company?', `<p style="color:var(--mute);margin:0 0 16px">Deletes the company and its book.</p><div style="display:flex;gap:10px"><button class="btn btn-ghost btn-block" onclick="closeModal()">Cancel</button><button class="btn btn-red btn-block" onclick="doDelCompany('${id}')">Delete</button></div>`); }
+function doDelCompany(id){ DB.companies=DB.companies.filter(c=>c.id!==id); if(DB.activeCompanyId===id)DB.activeCompanyId=DB.companies[0].id; saveState(); sbDelete(id); closeModal(); render(); }
+
+window.addEventListener('load',()=>{ boot(); const g=document.getElementById('gateEmail'); if(g)g.focus(); });
+</script>
+</body>
+</html>
