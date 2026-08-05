@@ -736,7 +736,8 @@ function renderJB(){
       if(iss.group){ const g=GROUPS[iss.group]; const n=groupTasks(iss.group).length; return `<div class="ws-row"><div class="ws-ico" style="background:${col}">${i+1}</div><div class="ws-main"><div class="ws-issue">${esc(iss.phrase)}</div><div class="ws-match">Matched → ${esc(g.cat)} · ${esc(g.label)} · ${n} price point${n>1?'s':''}</div></div><button class="btn btn-ghost btn-sm" onclick="reassign(${i})">Change</button><button class="ws-x" onclick="removeIssue(${i})">✕</button></div>`; }
       return `<div class="ws-row unmatched"><div class="ws-ico" style="background:#d4a017">?</div><div class="ws-main"><div class="ws-issue">${esc(iss.phrase)}</div><div class="ws-match" style="color:#8a6d00">Not in your book yet — build it on the fly</div></div><button class="btn btn-red btn-sm" onclick="buildFor(${i})">${ICO.plus} Build task</button><button class="ws-x" onclick="removeIssue(${i})">✕</button></div>`;
     }).join('')}
-    <div style="display:flex;justify-content:center;margin-top:14px">
+    <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:14px">
+      <button class="btn btn-ghost btn-lg" onclick="addTask()">${ICO.plus} Add task</button>
       <button class="btn btn-red btn-lg" onclick="doBuild()">Build the options →</button>
     </div>
   </div>`:''}
@@ -869,6 +870,11 @@ function setGroup(i,k){ jb.issues[i].group=k; jb.issues[i].custom=null; closeMod
 
 /* build a custom task for an unmatched (or any) issue */
 function buildFor(i){ openCustomTask(jb.issues[i].phrase, (task)=>{ jb.issues[i].custom=task; jb.issues[i].group=null; jb.options=null; render(); }); }
+
+/* manually add a task to the detected set */
+function addTask(){ openModal('Add a task', Object.keys(GROUPS).map(k=>`<div class="pick-item" onclick="addTaskGroup('${k}')"><div class="pn">${esc(GROUPS[k].label)}</div><div class="mini">${esc(GROUPS[k].cat)}</div></div>`).join('')+`<div class="pick-item" onclick="closeModal();addTaskCustom()" style="border-style:dashed"><div class="pn" style="color:var(--red)">＋ Build a custom task</div></div>`); }
+function addTaskGroup(k){ jb.issues.push({phrase:GROUPS[k].label, group:k, custom:null}); closeModal(); jb.options=null; render(); toast('Task added'); }
+function addTaskCustom(){ openCustomTask('', (task)=>{ jb.issues.push({phrase:task.name, group:null, custom:task}); jb.options=null; render(); }); }
 
 function choose(oi){ jb.chosen=oi; const opt=jb.options[oi]; const t=opt.tier; const total=optionTotal(opt);
   openModal('Confirm selection', `<p style="margin:0 0 14px;color:var(--mute)">Sally chose <b style="color:var(--ink)">${esc(t.name)}</b> — <b style="color:var(--ink)">${fmt(total)}</b> for ${opt.lines.length} item${opt.lines.length>1?'s':''}. Lock it in?</p><div style="display:flex;gap:10px"><button class="btn btn-ghost btn-block" onclick="closeModal()">Keep looking</button><button class="btn btn-red btn-block" onclick="closeModal();jb.presented=true;render();window.scrollTo(0,0)">Confirm &amp; Present</button></div>`);
