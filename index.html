@@ -1065,7 +1065,7 @@ function renderBook(){
       if(!ts.length && !mine) return '';   // hide empty built-in groups; always show your own custom groups
       const lo=ts.length?taskPrice(ts[0],c.settings):0, hi=ts.length?taskPrice(ts[ts.length-1],c.settings):0;
       const meta=ts.length?`${ts.length} task${ts.length>1?'s':''} · ${fmt(lo)}${lo!==hi?'–'+fmt(hi):''}`:'No tasks yet — tap to add';
-      return `<button class="job-card" onclick="openGroup('${k}')" ${mine?'style="border-color:#4f46e5"':''}><span class="jc-cat"${mine?' style="color:#4f46e5"':''}>${esc(g.cat)}${mine?' · yours':''}</span><span class="jc-name">${esc(g.label)}</span><span class="jc-meta">${meta}</span></button>`;
+      return `<button class="job-card" onclick="openGroup('${k}')" ${mine?'style="border-color:#4f46e5"':''}><span class="jc-cat"${mine?' style="color:#4f46e5"':''}>${esc(g.cat)}</span><span class="jc-name">${esc(g.label)}</span><span class="jc-meta">${meta}</span></button>`;
     }).join('')}
     ${(bookCat==='All'&&customTasks.length)?`<button class="job-card" onclick="openGroup('custom')" style="border-color:#2e7d5b"><span class="jc-cat" style="color:#2e7d5b">Field-Built</span><span class="jc-name">Your Custom Tasks</span><span class="jc-meta">${customTasks.length} task${customTasks.length>1?'s':''}</span></button>`:''}
   </div>`;
