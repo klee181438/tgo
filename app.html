@@ -1023,11 +1023,30 @@ function renderAdmin(){
     <div style="display:flex;align-items:center;gap:12px"><button class="btn btn-ghost btn-sm" onclick="testAI()">Test connection</button><span id="aiStatus" class="mini"></span></div>
   </div>
 
+  ${(ROLE==='master'||ROLE==='owner')?`<div class="card card-pad" style="margin-top:22px">
+    <div class="section-title">Team</div>
+    <p class="mini" style="margin:-4px 0 10px">Invite people to ${esc(co().name)} — they get an email to set their own password, then sign in with their personal login (no shared code).</p>
+    <div class="row2">
+      <div class="field"><label>Email</label><input id="tmEmail" type="email" placeholder="name@company.com"></div>
+      ${ROLE==='master'?`<div class="field"><label>Role</label><select id="tmRole"><option value="tech">Tech — Job Builder &amp; Price Book</option><option value="owner">Owner — full shop admin</option></select></div>`:`<input type="hidden" id="tmRole" value="tech">`}
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="btn btn-red btn-sm" onclick="inviteMember()">Send invite</button><span id="tmStatus" class="mini"></span></div>
+  </div>`:''}
   <div class="card card-pad" style="margin-top:22px">
     <div class="section-title">Sync</div>
     <p class="mini" style="margin:-4px 0 8px">Your price book, rates &amp; tiers sync automatically to the cloud and to every device signed into your shop — edits save as you go.</p>
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="syncNow()">Sync now (pull latest)</button><span id="syncStatus" class="mini"></span></div>
   </div>`;
+}
+async function inviteMember(){ const el=document.getElementById('tmEmail'); const email=(el?el.value:'').trim().toLowerCase(); const rEl=document.getElementById('tmRole'); const role=(rEl&&rEl.value)||'tech'; const st=document.getElementById('tmStatus');
+  if(!email){ if(st)st.textContent='Enter an email'; return; }
+  if(st)st.textContent='Sending…';
+  try{ const {data:{session}}=await sb.auth.getSession(); const token=session&&session.access_token;
+    const r=await fetch(SUPABASE_URL+'/functions/v1/admin',{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+token,'apikey':SUPABASE_ANON},body:JSON.stringify({action:'invite_member',tenantId:co().id,email,role})});
+    const d=await r.json().catch(()=>({}));
+    if(r.ok){ if(st)st.textContent='Invite sent to '+email+' ('+(d.role||role)+')'; el.value=''; toast('Invite sent'); }
+    else { if(st)st.textContent='Error: '+(d.error||r.status); }
+  }catch(e){ if(st)st.textContent='Error: '+e; }
 }
 function setS(k,v){ const s=co().settings;
   if(k==='showMonthly'||k==='useSliding'||k==='enforceOrder') s[k]=(v==='1'||v===true);
