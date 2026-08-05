@@ -1045,14 +1045,16 @@ function renderBook(){
 function openGroup(k){
   const c=co(),s=c.settings; const label=k==='custom'?'Your Custom Tasks':GROUPS[k].label;
   const ts=c.book.filter(t=>t.g===k).sort((a,b)=>taskPrice(a,s)-taskPrice(b,s));
-  openModal(esc(label), `<table class="tbl"><thead><tr><th>Task</th><th>Cost</th><th>Price</th><th></th></tr></thead><tbody>
-    ${ts.map(t=>`<tr id="brow_${t.id}"><td><b>${esc(t.name)}</b>${t.tier?` <span class="pillcat">${esc(t.tier)}</span>`:''}${t.custom?' <span class="pillcat" style="background:#e9f6ef;color:#2e7d5b">field-built</span>':''}</td><td class="mono mini">${fmt2(t.cost||0)}</td><td class="mono"><b>${fmt(taskPrice(t,s))}</b></td><td style="text-align:right;white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="editBookTask('${t.id}')">Edit</button> <button class="btn btn-ghost btn-sm" style="color:var(--red)" title="Delete task" onclick="confirmDeleteTask('${t.id}','${k}')">Delete</button></td></tr>`).join('')}
-  </tbody></table><p class="mini" style="margin:12px 0 0">Delete removes a task from this shop's price book so it stops showing up in options. Syncs to your other devices automatically.</p><div style="margin-top:10px;text-align:right"><button class="btn btn-red btn-sm" onclick="closeModal();openCustomTask('',null)">${ICO.plus} Build a task</button></div>`);
+  const pct=(s.addOnPct!=null?s.addOnPct:25);
+  openModal(esc(label), `<table class="tbl"><thead><tr><th>Task</th><th>Cost</th><th>Price</th><th title="Price when this is an added task on a multi-item option">Add-on <span class="mini" style="font-weight:600">(${pct}% off)</span></th><th></th></tr></thead><tbody>
+    ${ts.map(t=>`<tr id="brow_${t.id}"><td><b>${esc(t.name)}</b>${t.tier?` <span class="pillcat">${esc(t.tier)}</span>`:''}${t.custom?' <span class="pillcat" style="background:#e9f6ef;color:#2e7d5b">field-built</span>':''}</td><td class="mono mini">${fmt2(t.cost||0)}</td><td class="mono"><b>${fmt(taskPrice(t,s))}</b></td><td class="mono" style="color:#2e7d5b">${fmt(addOnPrice(taskPrice(t,s),pct))}</td><td style="text-align:right;white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="editBookTask('${t.id}')">Edit</button> <button class="btn btn-ghost btn-sm" style="color:var(--red)" title="Delete task" onclick="confirmDeleteTask('${t.id}','${k}')">Delete</button></td></tr>`).join('')}
+  </tbody></table><p class="mini" style="margin:12px 0 0"><b style="color:#2e7d5b">Add-on</b> = the price this task drops to when it's an extra item on a bundled option (main/highest task stays full price). Adjust the % in Pricing. Delete removes a task from your book so it stops showing in options — syncs to your other devices.</p><div style="margin-top:10px;text-align:right"><button class="btn btn-red btn-sm" onclick="closeModal();openCustomTask('',null)">${ICO.plus} Build a task</button></div>`);
 }
+function addOnPrice(price,pct){ return price*(1-((pct!=null?pct:25)/100)); }
 function confirmDeleteTask(id,k){
   const t=co().book.find(x=>x.id===id); if(!t) return;
   const row=document.getElementById('brow_'+id); if(!row) return;
-  row.innerHTML=`<td colspan="4" style="background:#fff5f5"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><span>Delete <b>${esc(t.name)}</b> from your price book?</span><span style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="openGroup('${k}')">Cancel</button> <button class="btn btn-red btn-sm" onclick="deleteBookTask('${id}','${k}')">Delete task</button></span></div></td>`;
+  row.innerHTML=`<td colspan="5" style="background:#fff5f5"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><span>Delete <b>${esc(t.name)}</b> from your price book?</span><span style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="openGroup('${k}')">Cancel</button> <button class="btn btn-red btn-sm" onclick="deleteBookTask('${id}','${k}')">Delete task</button></span></div></td>`;
 }
 function deleteBookTask(id,k){
   const c=co(); const i=c.book.findIndex(x=>x.id===id); if(i<0) return;
