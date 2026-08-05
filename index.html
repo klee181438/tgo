@@ -3,6 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="True Grit">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1f2429">
 <title>True Grit Options — Job Builder</title>
 <style>
 :root{
@@ -415,7 +420,10 @@ async function pullAndApply(){ const rows=await sbPullRows(); if(rows===null) re
   saveState(); window.__syncing=false; return 'pulled';
 }
 async function startSync(){ if(!authed())return; const res=await pullAndApply(); if(res==='pulled') render();
-  if(!window.__syncBound){ window.__syncBound=true; window.addEventListener('focus',async()=>{ if(await pullAndApply()==='pulled') render(); }); }
+  if(!window.__syncBound){ window.__syncBound=true;
+    window.addEventListener('focus',async()=>{ if(await pullAndApply()==='pulled') render(); });
+    window.addEventListener('online',async()=>{ if(authed()){ (DB.companies||[]).forEach(c=>sbUpsert(c)); toast('Back online — your changes are saved'); setTimeout(async()=>{ if(await pullAndApply()==='pulled') render(); }, 1500); } });
+  }
 }
 async function syncNow(){ toast('Syncing…'); const res=await pullAndApply();
   if(res==='offline'){ toast('Can’t reach the database'); return; }
@@ -662,18 +670,27 @@ async function tryLogin(){ const email=(document.getElementById('gateEmail').val
   if(__gateMode==='signin'){ const {error}=await sb.auth.signInWithPassword({email,password:pass}); if(error){ gmsg(error.message); btn.textContent='Sign in'; return; } boot(); }
   else { const {data,error}=await sb.auth.signUp({email,password:pass}); if(error){ gmsg(error.message); btn.textContent='Create account'; return; } if(data.session){ boot(); } else { gmsg('Account created — check your email to confirm, then sign in.'); btn.textContent='Create account'; __gateMode='signin'; } }
 }
-async function boot(){ const {data:{session}}=await sb.auth.getSession();
+function roleToUi(r){ return (r==='superadmin')?'master':((r==='owner')?'owner':'staff'); }
+async function boot(){
+  let session=null;
+  try{ const r=await sb.auth.getSession(); session=(r&&r.data)?r.data.session:null; }catch(e){}
   if(!session){ document.getElementById('gate').classList.remove('hidden'); document.getElementById('app').classList.add('hidden'); return; }
-  const {data:prof}=await sb.from('profiles').select('role,tenant_id,email').eq('id',session.user.id).single();
-  const r=prof?prof.role:'tech';
-  ME={uid:session.user.id, role:r, tenantId:prof?prof.tenant_id:null, email:(prof&&prof.email)||session.user.email};
-  ROLE = (r==='superadmin')?'master':((r==='owner')?'owner':'staff'); TAB='jobbuilder';
-  await pullAndApply();
+  // Restore cached identity FIRST so we work even with no signal.
+  try{ const m=JSON.parse(localStorage.getItem('tg_me')||'null'); if(m&&m.uid){ ME=m; ROLE=roleToUi(m.role); } }catch(e){}
+  ME.uid=session.user.id; ME.email=session.user.email||ME.email;
+  // Refresh identity from the network when we can — a failure is fine, we keep the cached one.
+  try{ const {data:prof}=await sb.from('profiles').select('role,tenant_id,email').eq('id',session.user.id).single();
+    if(prof){ ME.role=prof.role; ME.tenantId=prof.tenant_id; ME.email=prof.email||ME.email; ROLE=roleToUi(prof.role); } }catch(e){}
+  if(!ROLE) ROLE='staff';
+  try{ localStorage.setItem('tg_me', JSON.stringify(ME)); }catch(e){}
+  TAB='jobbuilder';
+  const res=await pullAndApply(); // 'offline' keeps the last-synced book that's already cached locally
   try{ const sp=new URLSearchParams(location.search).get('shop'); if(sp && ROLE==='master' && DB.companies.find(c=>c.id===sp)) DB.activeCompanyId=sp; }catch(e){}
   enterApp();
+  if(res==='offline'){ toast('Offline — using your saved price book'); }
 }
 function enterApp(){ document.getElementById('gate').classList.add('hidden'); document.getElementById('app').classList.remove('hidden'); render(); startSync(); }
-async function logout(){ try{ await sb.auth.signOut(); }catch(e){} ROLE=null; ME={uid:null,role:null,tenantId:null,email:null}; document.getElementById('app').classList.add('hidden'); document.getElementById('gate').classList.remove('hidden'); const p=document.getElementById('gatePass'); if(p)p.value=''; }
+async function logout(){ try{ await sb.auth.signOut(); }catch(e){} try{localStorage.removeItem('tg_me');}catch(e){} ROLE=null; ME={uid:null,role:null,tenantId:null,email:null}; document.getElementById('app').classList.add('hidden'); document.getElementById('gate').classList.remove('hidden'); const p=document.getElementById('gatePass'); if(p)p.value=''; }
 const ICO={bolt:'<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L4.5 13.5H11l-1 8.5L19.5 10H13z"/></svg>',book:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M19 3v18"/></svg>',gear:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 0 1-4 0v-.1A1.6 1.6 0 0 0 7 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 3.5 14H3a2 2 0 0 1 0-4h.1A1.6 1.6 0 0 0 4.6 7a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 10 3.5V3a2 2 0 0 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.7H21a2 2 0 0 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>',build:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14"/></svg>',out:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>',plus:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>',check:'<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="#fff" stroke-width="3.5"><path d="M20 6L9 17l-5-5"/></svg>'};
 function renderNav(){
   const tabs=[['jobbuilder','Job Builder',ICO.bolt],['book','Price Book',ICO.book]];
