@@ -560,6 +560,27 @@ function matchGroup(phrase){
 }
 function groupTasks(key){ return co().book.filter(t=>t.g===key).slice().sort((a,b)=>taskPrice(a,co().settings)-taskPrice(b,co().settings)); }
 
+/* ---- relevance: build tiers only from tasks that fit what the customer actually said ---- */
+const JB_STOP=new Set(['the','and','for','with','replace','install','installed','new','fix','repair','repaired','need','needs','needed','under','job','please','also','out','one','two','the','are','its','my','our','get','got','put','off','has','have','that','this','plumbing']);
+function jbWords(str){ return (str||'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(w=>w.length>2 && !JB_STOP.has(w)); }
+function relevanceScore(name, phrase){ const a=new Set(jbWords(phrase)); let s=0; for(const w of jbWords(name)){ if(a.has(w)) s++; } return s; }
+/* Candidate tasks for tiering: those relevant to the phrase, kept within a sane price band so a small
+   repair doesn't ladder up into a huge unrelated job (e.g. "replace p-trap" must NOT top out at a 40ft sewer line). */
+function candidateTasks(groupKey, phrase){
+  const s=co().settings;
+  const all=groupTasks(groupKey);
+  if(all.length<=1) return all;
+  const scored=all.map(t=>({t, sc:relevanceScore(t.name, phrase)}));
+  const maxSc=Math.max(0,...scored.map(x=>x.sc));
+  let cand = (maxSc>0) ? scored.filter(x=>x.sc>0).map(x=>x.t) : all.slice();
+  cand.sort((a,b)=>taskPrice(a,s)-taskPrice(b,s));
+  const cap = s.spreadCap || 8;               // top option stays within cap× the cheapest relevant one
+  const base = taskPrice(cand[0],s) || 1;
+  let banded = cand.filter(t=> taskPrice(t,s) <= base*cap );
+  if(!banded.length) banded=[cand[0]];
+  return banded;
+}
+
 function analyze(){
   const phrases=parseIssues(jb.text);
   jb.issues=phrases.map(ph=>{ const g=matchGroup(ph); return {phrase:ph, group:g, custom:null}; });
@@ -579,7 +600,7 @@ function buildOptions(){
   if(!matched.length){ jb.options=null; return; }
   const perIssue=matched.map(iss=>{
     if(iss.custom) return {iss, custom:true};
-    const tasks=groupTasks(iss.group);
+    const tasks=candidateTasks(iss.group, iss.phrase);
     return {iss, tasks, idxs:pickIndices(tasks.length,N), group:iss.group};
   });
   jb.options=c.tiers.slice(0,N).map((tier,ti)=>{
@@ -733,7 +754,7 @@ function renderJB(){
     ${jb.issues.map((iss,i)=>{
       const col=iconColors[i%iconColors.length];
       if(iss.custom){ return `<div class="ws-row"><div class="ws-ico" style="background:#2e7d5b">${i+1}</div><div class="ws-main"><div class="ws-issue">${esc(iss.phrase)}</div><div class="ws-match">Custom task · ${esc(iss.custom.name)} · ${fmt(taskPrice(iss.custom,c.settings))}</div></div><button class="ws-x" onclick="removeIssue(${i})">✕</button></div>`; }
-      if(iss.group){ const g=GROUPS[iss.group]; const n=groupTasks(iss.group).length; return `<div class="ws-row"><div class="ws-ico" style="background:${col}">${i+1}</div><div class="ws-main"><div class="ws-issue">${esc(iss.phrase)}</div><div class="ws-match">Matched → ${esc(g.cat)} · ${esc(g.label)} · ${n} price point${n>1?'s':''}</div></div><button class="btn btn-ghost btn-sm" onclick="reassign(${i})">Change</button><button class="ws-x" onclick="removeIssue(${i})">✕</button></div>`; }
+      if(iss.group){ const g=GROUPS[iss.group]; const n=candidateTasks(iss.group, iss.phrase).length; return `<div class="ws-row"><div class="ws-ico" style="background:${col}">${i+1}</div><div class="ws-main"><div class="ws-issue">${esc(iss.phrase)}</div><div class="ws-match">Matched → ${esc(g.cat)} · ${esc(g.label)} · ${n} price point${n>1?'s':''}</div></div><button class="btn btn-ghost btn-sm" onclick="reassign(${i})">Change</button><button class="ws-x" onclick="removeIssue(${i})">✕</button></div>`; }
       return `<div class="ws-row unmatched"><div class="ws-ico" style="background:#d4a017">?</div><div class="ws-main"><div class="ws-issue">${esc(iss.phrase)}</div><div class="ws-match" style="color:#8a6d00">Not in your book yet — build it on the fly</div></div><button class="btn btn-red btn-sm" onclick="buildFor(${i})">${ICO.plus} Build task</button><button class="ws-x" onclick="removeIssue(${i})">✕</button></div>`;
     }).join('')}
     <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:14px">
