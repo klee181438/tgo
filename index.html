@@ -456,7 +456,7 @@ function newCompany(id,name,over){
   return Object.assign({
     id,name,
     settings:{ laborRate:225, useSliding:true, markupTiers:defaultMarkupTiers(), flatMarkup:35,
-      taxPct:0, roundTo:1, financeMonths:36, showMonthly:true, numOptions:5, spread:linspace(0.3,0.92,5), optionLayout:'stacked', enforceOrder:true, tierGapPct:12 },
+      taxPct:0, roundTo:1, financeMonths:36, showMonthly:true, numOptions:5, spread:linspace(0.3,0.92,5), optionLayout:'stacked', enforceOrder:true, tierGapPct:12, addOnPct:25 },
     tiers:defaultTiers(),
     book:seedBook()
   }, over||{});
@@ -611,7 +611,8 @@ function buildOptions(){
     });
     return {tier, lines};
   });
-  jb.options.forEach(o=>{ o.baseTotal=optionTotal(o); }); // reference ladder for spacing
+  applyAddOns();
+  jb.options.forEach(o=>{ o.baseTotal=optionTotal(o); }); // reference ladder for spacing (add-on discount applied)
 }
 function taskById(id){ return (jb.overrides&&jb.overrides[id])||co().book.find(t=>t.id===id); }
 function setLayout(v){ co().settings.optionLayout=v; saveState(); render(); }
@@ -652,13 +653,26 @@ async function aiFillDesc(fieldId,name,groupLabel,btn){
   try{ el.value=await aiDescribe(name||'task',groupLabel||''); }catch(e){ el.value=orig; toast('AI: '+e.message.slice(0,50)); }
   if(btn)btn.disabled=false;
 }
-function effLine(l){ const s=co().settings; const t=taskById(l.taskId); return (t?taskPrice(t,s):0)+(l.adj||0); }
+function effLine(l){ const s=co().settings; const t=taskById(l.taskId); const base=(t?taskPrice(t,s):0)*(l.disc==null?1:l.disc); return base+(l.adj||0); }
 function optionTotal(opt){ const s=co().settings; return roundTo(opt.lines.reduce((a,l)=>a+effLine(l),0), s.roundTo||1); }
+/* Multi-item pricing: the highest-cost task in each option is the "main" job at full price; every
+   cheaper task becomes an add-on at a discount (tech is already onsite). Silent — no customer wording. */
+function applyAddOns(){
+  if(!jb.options) return; const s=co().settings; const pct=(s.addOnPct!=null?s.addOnPct:25); const f=1-(pct/100);
+  jb.options.forEach(o=>{
+    if(!o.lines||!o.lines.length) return;
+    if(o.lines.length<=1||pct<=0){ o.lines.forEach(l=>{l.disc=1;l.addon=false;}); return; }
+    let mainIdx=0,best=-Infinity;
+    o.lines.forEach((l,li)=>{ const t=taskById(l.taskId); const bp=t?taskPrice(t,s):0; if(bp>best){best=bp;mainIdx=li;} });
+    o.lines.forEach((l,li)=>{ if(li===mainIdx){l.disc=1;l.addon=false;} else {l.disc=f;l.addon=true;} });
+  });
+}
 /* keep the tier ladder ordered AND spaced: each tier stays at least its original
    dollar gap, or a minimum % above the one below (whichever is larger) */
 function enforceTierOrder(){
   if(!jb.options) return; const s=co().settings; const N=jb.options.length;
   jb.options.forEach(o=>{o.lines.forEach(l=>{l.adj=0;l.adjusted=false;}); o.outOfOrder=false;});
+  applyAddOns();
   const gapPct=(s.tierGapPct!=null?s.tierGapPct:12)/100;
   for(let i=1;i<N;i++){
     const below=optionTotal(jb.options[i-1]);
@@ -911,7 +925,7 @@ function renderReceipt(){
       <div style="font-size:12px;opacity:.85;margin-top:4px">${opt.lines.length} items · one flat price</div>
     </div>
     <div class="r-body">
-      ${opt.lines.map(l=>{const tk=taskById(l.taskId);return tk?`<div class="line"><span><b>${esc(tk.name)}</b><div class="mini" style="margin-top:2px">${esc(genDesc(tk))}</div></span><span class="mono">${fmt(taskPrice(tk,s))}</span></div>`:'';}).join('')}
+      ${opt.lines.map(l=>{const tk=taskById(l.taskId);return tk?`<div class="line"><span><b>${esc(tk.name)}</b><div class="mini" style="margin-top:2px">${esc(genDesc(tk))}</div></span><span class="mono">${fmt(effLine(l))}</span></div>`:'';}).join('')}
       ${s.showMonthly?`<div class="line"><span class="mini">Financing available</span><span class="mini">~${fmt(monthly(total,s.financeMonths))}/mo · ${s.financeMonths}mo</span></div>`:''}
       <div class="line total"><span>Total (flat rate)</span><span class="mono">${fmt(total)}</span></div>
       <div style="display:flex;gap:10px;margin-top:18px">
@@ -1032,6 +1046,7 @@ function renderAdmin(){
     <div class="row2">
       <div class="field"><label>Keep tiers in price order</label><select onchange="setS('enforceOrder',this.value)"><option value="1" ${s.enforceOrder!==false?'selected':''}>Yes — auto-adjust so each stays above the one below</option><option value="0" ${s.enforceOrder===false?'selected':''}>No — just warn me</option></select><div class="hint">Prevents a lower tier from being priced above a higher one after edits.</div></div>
       <div class="field"><label>Minimum gap between tiers</label><div class="inline-affix"><input type="number" value="${s.tierGapPct!=null?s.tierGapPct:12}" onchange="setS('tierGapPct',this.value)"><span class="suf">%</span></div><div class="hint">When tiers get nudged, keep at least this much space between them.</div></div>
+      <div class="field"><label>Add-on rate — extra tasks</label><div class="inline-affix"><input type="number" value="${s.addOnPct!=null?s.addOnPct:25}" onchange="setS('addOnPct',this.value)"><span class="suf">% off</span></div><div class="hint">On multi-item jobs the biggest task is full price; every cheaper task is discounted this much automatically (you're already onsite). Never shown to the customer.</div></div>
     </div>
   </div>
 
