@@ -400,7 +400,7 @@ const STARTER = [
 const STORE_KEY='truegrit_jobbuilder_v2';
 let memFallback=null;
 function loadState(){ try{const r=localStorage.getItem(STORE_KEY);if(r)return JSON.parse(r);}catch(e){if(memFallback)return memFallback;} return null; }
-function saveState(){ try{localStorage.setItem(STORE_KEY,JSON.stringify(DB));}catch(e){memFallback=JSON.parse(JSON.stringify(DB));} if(!window.__syncing) scheduleSync(); }
+function saveState(){ try{localStorage.setItem(STORE_KEY,JSON.stringify(DB));}catch(e){memFallback=JSON.parse(JSON.stringify(DB));} if(!window.__syncing){ window.__dirty=true; scheduleSync(); } }
 
 /* ================= CLOUD SYNC (Supabase Auth + tenants) ================= */
 function authed(){ return !!(ME && ME.uid); }
@@ -410,8 +410,8 @@ async function sbUpsert(c){ if(!authed()) return;
   try{ await sb.from('tenants').update({name:c.name,settings:c.settings,tiers:c.tiers,book:c.book}).eq('id',c.id); }catch(e){}
 }
 async function sbDelete(id){ /* shops are removed from the OptionPush Admin Console */ }
-let __syncT; function scheduleSync(){ if(!authed())return; clearTimeout(__syncT); __syncT=setTimeout(()=>{ (DB.companies||[]).forEach(c=>sbUpsert(c)); }, 900); }
-async function pullAndApply(){ const rows=await sbPullRows(); if(rows===null) return 'offline';
+let __syncT; function scheduleSync(){ if(!authed())return; clearTimeout(__syncT); __syncT=setTimeout(async()=>{ for(const c of (DB.companies||[])) await sbUpsert(c); window.__dirty=false; }, 900); }
+async function pullAndApply(){ if(window.__dirty) return 'pending'; const rows=await sbPullRows(); if(rows===null) return 'offline'; if(window.__dirty) return 'pending';
   if(rows.length===0){ return 'empty'; }
   window.__syncing=true;
   DB.companies=rows.map(x=>({id:x.id,name:x.name,settings:x.settings,tiers:x.tiers,book:x.book}));
