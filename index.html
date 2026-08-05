@@ -548,14 +548,17 @@ function parseIssues(text){
   return text.replace(/\band\b|\balso\b|by the way|\bplus\b/gi,',')
     .split(/[\n,;]+/).map(x=>x.trim()).filter(x=>x.replace(/[^a-z]/gi,'').length>2);
 }
+/* built-in groups + this shop's own custom job groups (stored in settings.groups so they sync) */
+function allGroups(){ const c=co(); return Object.assign({}, GROUPS, (c&&c.settings&&c.settings.groups)||{}); }
+function grp(k){ return allGroups()[k]; }
 function matchGroup(phrase){
   const p=phrase.toLowerCase();
   if(p.includes('tankless')) return 'tankless';   // "tankless water heater" is never a tank
-  let best=null,bs=0;
-  for(const key in GROUPS){
+  let best=null,bs=0; const AG=allGroups();
+  for(const key in AG){
     let s=0;
     (STRONG[key]||[]).forEach(kw=>{ if(p.includes(kw)) s+=1000; });
-    (GROUPS[key].syn||[]).forEach(kw=>{ if(p.includes(kw)) s+=kw.length; });
+    (AG[key].syn||[]).forEach(kw=>{ if(p.includes(kw)) s+=kw.length; });
     if(s>bs){bs=s;best=key;}
   }
   return bs>0?best:null;
@@ -573,7 +576,7 @@ const MINOR_RE=/\b(add for|reinstall|unstick|acid flush|float rod|vacuum breaker
 function isMinorLine(name){ return MINOR_RE.test(name||''); }
 /* words that just name the group itself (toilet, faucet, drain…) — they don't distinguish tasks within it */
 function groupGeneric(groupKey){
-  const g=GROUPS[groupKey]||{}; const set=new Set();
+  const g=grp(groupKey)||{}; const set=new Set();
   jbWords(g.label||'').forEach(w=>set.add(w));
   (g.syn||[]).forEach(k=>jbWords(k).forEach(w=>set.add(w)));
   (STRONG[groupKey]||[]).forEach(k=>jbWords(k).forEach(w=>set.add(w)));
@@ -657,11 +660,11 @@ async function aiCall(system,user,maxTokens){
   return (d.content&&d.content[0]&&d.content[0].text)||'';
 }
 async function aiParse(text){
-  const groups=Object.entries(GROUPS).map(([k,g])=>`${k} = ${g.label} (${g.cat})`).join('\n');
+  const groups=Object.entries(allGroups()).map(([k,g])=>`${k} = ${g.label} (${g.cat})`).join('\n');
   const system=`You help a plumber turn a messy on-site note into a clean job list. Split the note into individual repair or replacement items (merge words describing the same item). For each item pick the ONE best group key below, or null if nothing fits.\nGROUP KEYS:\n${groups}\nReturn ONLY strict minified JSON: {"items":[{"phrase":"short human label","group":"key or null"}]}`;
   const raw=await aiCall(system,text,700);
   const m=raw.match(/\{[\s\S]*\}/); const obj=JSON.parse(m?m[0]:raw);
-  const items=(obj.items||[]).map(it=>({phrase:String(it.phrase||'').trim(),group:(it.group&&GROUPS[it.group])?it.group:null,custom:null})).filter(x=>x.phrase);
+  const AG=allGroups(); const items=(obj.items||[]).map(it=>({phrase:String(it.phrase||'').trim(),group:(it.group&&AG[it.group])?it.group:null,custom:null})).filter(x=>x.phrase);
   if(!items.length) throw new Error('no items parsed');
   return items;
 }
@@ -798,7 +801,7 @@ function renderJB(){
     ${jb.issues.map((iss,i)=>{
       const col=iconColors[i%iconColors.length];
       if(iss.custom){ return `<div class="ws-row"><div class="ws-ico" style="background:#2e7d5b">${i+1}</div><div class="ws-main"><div class="ws-issue">${esc(iss.phrase)}</div><div class="ws-match">Custom task · ${esc(iss.custom.name)} · ${fmt(taskPrice(iss.custom,c.settings))}</div></div><button class="ws-x" onclick="removeIssue(${i})">✕</button></div>`; }
-      if(iss.group){ const g=GROUPS[iss.group]; const n=candidateTasks(iss.group, iss.phrase).length; return `<div class="ws-row"><div class="ws-ico" style="background:${col}">${i+1}</div><div class="ws-main"><div class="ws-issue">${esc(iss.phrase)}</div><div class="ws-match">Matched → ${esc(g.cat)} · ${esc(g.label)} · ${n} price point${n>1?'s':''}</div></div><button class="btn btn-ghost btn-sm" onclick="reassign(${i})">Change</button><button class="ws-x" onclick="removeIssue(${i})">✕</button></div>`; }
+      if(iss.group){ const g=grp(iss.group)||{cat:'Custom',label:iss.group}; const n=candidateTasks(iss.group, iss.phrase).length; return `<div class="ws-row"><div class="ws-ico" style="background:${col}">${i+1}</div><div class="ws-main"><div class="ws-issue">${esc(iss.phrase)}</div><div class="ws-match">Matched → ${esc(g.cat)} · ${esc(g.label)} · ${n} price point${n>1?'s':''}</div></div><button class="btn btn-ghost btn-sm" onclick="reassign(${i})">Change</button><button class="ws-x" onclick="removeIssue(${i})">✕</button></div>`; }
       return `<div class="ws-row unmatched"><div class="ws-ico" style="background:#d4a017">?</div><div class="ws-main"><div class="ws-issue">${esc(iss.phrase)}</div><div class="ws-match" style="color:#8a6d00">Not in your book yet — build it on the fly</div></div><button class="btn btn-red btn-sm" onclick="buildFor(${i})">${ICO.plus} Build task</button><button class="ws-x" onclick="removeIssue(${i})">✕</button></div>`;
     }).join('')}
     <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:14px">
@@ -867,7 +870,7 @@ function renderOptions(){
 /* swap a line item across the tapped option */
 function swapLine(oi,li){
   const opt=jb.options[oi], line=opt.lines[li]; const tasks=groupTasks(line.groupKey); const s=co().settings;
-  openModal('Choose the '+esc(GROUPS[line.groupKey].label), tasks.map(t=>`<div class="pick-item ${t.id===line.taskId?'sel':''}" onclick="pickSwap(${oi},${li},'${t.id}')"><div><div class="pn">${esc(t.name)}</div>${t.tier?`<div class="mini">${esc(t.tier)} grade</div>`:''}</div><div class="pp">${fmt(taskPrice(t,s))}</div></div>`).join(''));
+  openModal('Choose the '+esc((grp(line.groupKey)||{label:'task'}).label), tasks.map(t=>`<div class="pick-item ${t.id===line.taskId?'sel':''}" onclick="pickSwap(${oi},${li},'${t.id}')"><div><div class="pn">${esc(t.name)}</div>${t.tier?`<div class="mini">${esc(t.tier)} grade</div>`:''}</div><div class="pp">${fmt(taskPrice(t,s))}</div></div>`).join(''));
 }
 function pickSwap(oi,li,id){ jb.options[oi].lines[li].taskId=id; closeModal(); render(); }
 
@@ -877,7 +880,7 @@ function editBookTask(id){ openTaskEdit(id, null); }
 function openTaskEdit(id, lineCtx){
   const s=co().settings; const t=taskById(id); if(!t) return;
   window.__editCtx={id,lineCtx}; window.__etTouched=false;
-  const glabel=GROUPS[t.g]?GROUPS[t.g].label:'';
+  const glabel=grp(t.g)?grp(t.g).label:'';
   const hrs=(t.laborHours!=null?t.laborHours:''); const mat=(t.materialCost!=null?t.materialCost:'');
   openModal('Edit task'+(lineCtx?' — on the fly':''), `
     <div class="field"><label>Task name (what the customer sees)</label><input id="etName" value="${esc(t.name)}"></div>
@@ -928,7 +931,7 @@ function applyEdit(mode){
 /* reassign an issue to a different group */
 function reassign(i){
   openModal('What kind of job is this?', `<p class="mini" style="margin:0 0 12px">"${esc(jb.issues[i].phrase)}"</p>`+
-    Object.keys(GROUPS).map(k=>`<div class="pick-item ${jb.issues[i].group===k?'sel':''}" onclick="setGroup(${i},'${k}')"><div class="pn">${esc(GROUPS[k].label)}</div><div class="mini">${esc(GROUPS[k].cat)}</div></div>`).join('')+
+    Object.keys(allGroups()).map(k=>`<div class="pick-item ${jb.issues[i].group===k?'sel':''}" onclick="setGroup(${i},'${k}')"><div class="pn">${esc(grp(k).label)}</div><div class="mini">${esc(grp(k).cat)}</div></div>`).join('')+
     `<div class="pick-item" onclick="closeModal();buildFor(${i})" style="border-style:dashed"><div class="pn" style="color:var(--red)">＋ None of these — build a custom task</div></div>`);
 }
 function setGroup(i,k){ jb.issues[i].group=k; jb.issues[i].custom=null; closeModal(); jb.options=null; render(); }
@@ -937,8 +940,8 @@ function setGroup(i,k){ jb.issues[i].group=k; jb.issues[i].custom=null; closeMod
 function buildFor(i){ openCustomTask(jb.issues[i].phrase, (task)=>{ jb.issues[i].custom=task; jb.issues[i].group=null; jb.options=null; render(); }); }
 
 /* manually add a task to the detected set */
-function addTask(){ openModal('Add a task', Object.keys(GROUPS).map(k=>`<div class="pick-item" onclick="addTaskGroup('${k}')"><div class="pn">${esc(GROUPS[k].label)}</div><div class="mini">${esc(GROUPS[k].cat)}</div></div>`).join('')+`<div class="pick-item" onclick="closeModal();addTaskCustom()" style="border-style:dashed"><div class="pn" style="color:var(--red)">＋ Build a custom task</div></div>`); }
-function addTaskGroup(k){ jb.issues.push({phrase:GROUPS[k].label, group:k, custom:null}); closeModal(); jb.options=null; render(); toast('Task added'); }
+function addTask(){ openModal('Add a task', Object.keys(allGroups()).map(k=>`<div class="pick-item" onclick="addTaskGroup('${k}')"><div class="pn">${esc(grp(k).label)}</div><div class="mini">${esc(grp(k).cat)}</div></div>`).join('')+`<div class="pick-item" onclick="closeModal();addTaskCustom()" style="border-style:dashed"><div class="pn" style="color:var(--red)">＋ Build a custom task</div></div>`); }
+function addTaskGroup(k){ jb.issues.push({phrase:grp(k).label, group:k, custom:null}); closeModal(); jb.options=null; render(); toast('Task added'); }
 function addTaskCustom(){ openCustomTask('', (task)=>{ jb.issues.push({phrase:task.name, group:null, custom:task}); jb.options=null; render(); }); }
 
 function choose(oi){ jb.chosen=oi; const opt=jb.options[oi]; const t=opt.tier; const total=optionTotal(opt);
@@ -969,7 +972,7 @@ function renderReceipt(){
 function newJob(){ jb={text:'',issues:[],options:null,chosen:null,presented:false,overrides:{}}; render(); window.scrollTo(0,0); }
 
 /* ================= CUSTOM TASK BUILDER ================= */
-function openCustomTask(prefill, onSave){
+function openCustomTask(prefill, onSave, preGroup){
   const c=co();
   window.__ctSave=onSave;
   openModal('Build a task — ready this visit', `
@@ -980,7 +983,7 @@ function openCustomTask(prefill, onSave){
       <div class="field"><label>Labor time (hours)</label><input id="ctHrs" type="number" step="0.25" placeholder="0.75" oninput="ctPreview()"></div>
     </div>
     <div class="field"><label>Job group</label>
-      <select id="ctGroup">${Object.keys(GROUPS).map(k=>`<option value="${k}">${esc(GROUPS[k].label)}</option>`).join('')}<option value="">— General / one-off —</option></select></div>
+      <select id="ctGroup">${Object.keys(allGroups()).map(k=>`<option value="${k}" ${preGroup===k?'selected':''}>${esc(grp(k).label)}</option>`).join('')}<option value="" ${preGroup===''?'selected':''}>— General / one-off —</option></select></div>
     <div class="field"><label style="display:flex;align-items:center;gap:8px">Description ${aiReady()?`<button class="btn btn-ghost btn-sm" style="padding:4px 10px" onclick="aiFillDesc('ctDesc',document.getElementById('ctName').value,document.getElementById('ctGroup').selectedOptions[0].text,this)">✦ Write with AI</button>`:''}</label><textarea id="ctDesc" rows="2" placeholder="Optional — what the customer sees${aiReady()?', or let AI write it':''}"></textarea></div>
     <div class="card" style="box-shadow:none;background:#fbfcfd;padding:15px;margin-bottom:14px">
       <div class="section-title" style="margin-bottom:6px">Priced instantly</div>
@@ -1015,12 +1018,13 @@ function saveCustomTask(){
 
 /* ================= VIEW: PRICE BOOK ================= */
 let bookCat='All', bookSearch='';
+function isCustomGroup(k){ const c=co(); return !!(c.settings.groups&&c.settings.groups[k]); }
 function renderBook(){
-  const c=co();
-  const cats=['All',...Array.from(new Set(Object.values(GROUPS).map(g=>g.cat)))];
+  const c=co(); const AG=allGroups();
+  const cats=['All',...Array.from(new Set(Object.values(AG).map(g=>g.cat)))];
   const q=bookSearch.toLowerCase();
-  const groupsInView=Object.keys(GROUPS).filter(k=>{
-    const g=GROUPS[k]; if(bookCat!=='All'&&g.cat!==bookCat)return false;
+  const groupsInView=Object.keys(AG).filter(k=>{
+    const g=AG[k]; if(bookCat!=='All'&&g.cat!==bookCat)return false;
     if(q&&!(g.label.toLowerCase().includes(q)||g.cat.toLowerCase().includes(q)))return false;
     return true;
   });
@@ -1030,25 +1034,66 @@ function renderBook(){
   <div class="page-head"><h2>Price Book</h2><p>${c.book.length} tasks across your job groups. Real Profit Rhino prices — plus anything you build in the field.</p></div>
   <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px">
     <input placeholder="Search job groups…" value="${esc(bookSearch)}" oninput="bookSearch=this.value;document.getElementById('view').innerHTML=renderBook()" style="flex:1;min-width:200px;padding:12px 14px;border:1.5px solid var(--line);border-radius:11px">
+    <button class="btn btn-ghost btn-sm" onclick="newJobGroup()">${ICO.plus} New job group</button>
     <button class="btn btn-red btn-sm" onclick="openCustomTask('',null)">${ICO.plus} Build a task</button>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
     ${cats.map(ct=>`<button class="pillcat" style="cursor:pointer;${bookCat===ct?'background:var(--charcoal);color:#fff':''}" onclick="bookCat='${esc(ct)}';document.getElementById('view').innerHTML=renderBook()">${esc(ct)}</button>`).join('')}
   </div>
   <div class="job-grid">
-    ${groupsInView.map(k=>{ const g=GROUPS[k]; const ts=groupTasks(k); if(!ts.length)return ''; const lo=taskPrice(ts[0],c.settings),hi=taskPrice(ts[ts.length-1],c.settings);
-      return `<button class="job-card" onclick="openGroup('${k}')"><span class="jc-cat">${esc(g.cat)}</span><span class="jc-name">${esc(g.label)}</span><span class="jc-meta">${ts.length} tasks · ${fmt(lo)}${lo!==hi?'–'+fmt(hi):''}</span></button>`;
+    ${groupsInView.map(k=>{ const g=AG[k]; const ts=groupTasks(k); const mine=isCustomGroup(k);
+      if(!ts.length && !mine) return '';   // hide empty built-in groups; always show your own custom groups
+      const lo=ts.length?taskPrice(ts[0],c.settings):0, hi=ts.length?taskPrice(ts[ts.length-1],c.settings):0;
+      const meta=ts.length?`${ts.length} task${ts.length>1?'s':''} · ${fmt(lo)}${lo!==hi?'–'+fmt(hi):''}`:'No tasks yet — tap to add';
+      return `<button class="job-card" onclick="openGroup('${k}')" ${mine?'style="border-color:#4f46e5"':''}><span class="jc-cat"${mine?' style="color:#4f46e5"':''}>${esc(g.cat)}${mine?' · yours':''}</span><span class="jc-name">${esc(g.label)}</span><span class="jc-meta">${meta}</span></button>`;
     }).join('')}
     ${(bookCat==='All'&&customTasks.length)?`<button class="job-card" onclick="openGroup('custom')" style="border-color:#2e7d5b"><span class="jc-cat" style="color:#2e7d5b">Field-Built</span><span class="jc-name">Your Custom Tasks</span><span class="jc-meta">${customTasks.length} task${customTasks.length>1?'s':''}</span></button>`:''}
   </div>`;
 }
+/* ---- create / manage custom job groups (stored in settings.groups so they sync) ---- */
+function newJobGroup(){
+  const AG=allGroups(); const cats=Array.from(new Set(Object.values(AG).map(g=>g.cat)));
+  openModal('New job group', `
+    <div class="field"><label>Group name</label><input id="ngLabel" placeholder="e.g. Drain Cleaning"></div>
+    <div class="field"><label>Category</label><input id="ngCat" list="ngCats" placeholder="e.g. Drains"><datalist id="ngCats">${cats.map(ct=>`<option value="${esc(ct)}">`).join('')}</datalist></div>
+    <div class="field"><label>Match keywords <span class="mini" style="font-weight:600">(optional, comma-separated)</span></label><input id="ngSyn" placeholder="e.g. drain cleaning, snake, auger, clogged, rooter"><div class="hint">Words a tech might type that should land in this group. The name is included automatically.</div></div>
+    <div style="display:flex;gap:10px;margin-top:16px"><button class="btn btn-ghost btn-block" onclick="closeModal()">Cancel</button><button class="btn btn-red btn-block" onclick="createJobGroup()">Create group</button></div>`);
+}
+function createJobGroup(){
+  const c=co(); const label=(document.getElementById('ngLabel').value||'').trim();
+  if(!label){ toast('Enter a group name'); return; }
+  const cat=(document.getElementById('ngCat').value||'').trim()||'Custom';
+  const synRaw=(document.getElementById('ngSyn').value||'').toLowerCase();
+  const syn=Array.from(new Set([label.toLowerCase(), ...synRaw.split(',').map(x=>x.trim()).filter(Boolean)]));
+  if(!c.settings.groups) c.settings.groups={};
+  // guard against a name that collides with an existing group
+  const exists=Object.values(allGroups()).some(g=>g.label.toLowerCase()===label.toLowerCase());
+  if(exists){ toast('A group with that name already exists'); return; }
+  const key=newId('grp');
+  c.settings.groups[key]={label, cat, syn, custom:true};
+  saveState(); closeModal(); render();
+  toast('Group created');
+  openCustomTask('', null, key);   // jump straight into adding its first task
+}
+function deleteJobGroup(k){
+  const c=co(); if(!isCustomGroup(k)) return;
+  if(c.book.some(t=>t.g===k)){ toast('Delete its tasks first'); return; }
+  const label=c.settings.groups[k].label; delete c.settings.groups[k];
+  saveState(); closeModal(); render(); toast('Deleted "'+label+'"');
+}
 function openGroup(k){
-  const c=co(),s=c.settings; const label=k==='custom'?'Your Custom Tasks':GROUPS[k].label;
+  const c=co(),s=c.settings; const mine=isCustomGroup(k);
+  const label=k==='custom'?'Your Custom Tasks':(grp(k)?grp(k).label:'Job group');
   const ts=c.book.filter(t=>t.g===k).sort((a,b)=>taskPrice(a,s)-taskPrice(b,s));
   const pct=(s.addOnPct!=null?s.addOnPct:25);
-  openModal(esc(label), `<table class="tbl"><thead><tr><th>Task</th><th>Cost</th><th>Price</th><th title="Price when this is an added task on a multi-item option">Add-on <span class="mini" style="font-weight:600">(${pct}% off)</span></th><th></th></tr></thead><tbody>
+  const addBtn=(k==='custom')?`<button class="btn btn-red btn-sm" onclick="closeModal();openCustomTask('',null)">${ICO.plus} Build a task</button>`
+    :`<button class="btn btn-red btn-sm" onclick="closeModal();openCustomTask('',null,'${k}')">${ICO.plus} Add a task to this group</button>`;
+  const delGroupBtn=(mine&&!ts.length)?`<button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="deleteJobGroup('${k}')">Delete group</button>`:'';
+  const body = ts.length ? `<table class="tbl"><thead><tr><th>Task</th><th>Cost</th><th>Price</th><th title="Price when this is an added task on a multi-item option">Add-on <span class="mini" style="font-weight:600">(${pct}% off)</span></th><th></th></tr></thead><tbody>
     ${ts.map(t=>`<tr id="brow_${t.id}"><td><b>${esc(t.name)}</b>${t.tier?` <span class="pillcat">${esc(t.tier)}</span>`:''}${t.custom?' <span class="pillcat" style="background:#e9f6ef;color:#2e7d5b">field-built</span>':''}</td><td class="mono mini">${fmt2(t.cost||0)}</td><td class="mono"><b>${fmt(taskPrice(t,s))}</b></td><td class="mono" style="color:#2e7d5b">${fmt(addOnPrice(taskPrice(t,s),pct))}</td><td style="text-align:right;white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="editBookTask('${t.id}')">Edit</button> <button class="btn btn-ghost btn-sm" style="color:var(--red)" title="Delete task" onclick="confirmDeleteTask('${t.id}','${k}')">Delete</button></td></tr>`).join('')}
-  </tbody></table><p class="mini" style="margin:12px 0 0"><b style="color:#2e7d5b">Add-on</b> = the price this task drops to when it's an extra item on a bundled option (main/highest task stays full price). Adjust the % in Pricing. Delete removes a task from your book so it stops showing in options — syncs to your other devices.</p><div style="margin-top:10px;text-align:right"><button class="btn btn-red btn-sm" onclick="closeModal();openCustomTask('',null)">${ICO.plus} Build a task</button></div>`);
+  </tbody></table><p class="mini" style="margin:12px 0 0"><b style="color:#2e7d5b">Add-on</b> = the price this task drops to when it's an extra item on a bundled option (main/highest task stays full price). Adjust the % in Pricing. Delete removes a task from your book so it stops showing in options — syncs to your other devices.</p>`
+    : `<div style="text-align:center;padding:24px 12px;color:var(--mute)"><p style="margin:0">No tasks in <b>${esc(label)}</b> yet.</p><p class="mini" style="margin:6px 0 0">Add one below to start pricing this kind of job.</p></div>`;
+  openModal(esc(label), body+`<div style="display:flex;gap:10px;margin-top:12px;justify-content:${delGroupBtn?'space-between':'flex-end'};align-items:center;flex-wrap:wrap">${delGroupBtn}<span>${addBtn}</span></div>`);
 }
 function addOnPrice(price,pct){ return price*(1-((pct!=null?pct:25)/100)); }
 function confirmDeleteTask(id,k){
