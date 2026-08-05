@@ -456,7 +456,7 @@ function newCompany(id,name,over){
   return Object.assign({
     id,name,
     settings:{ laborRate:225, useSliding:true, markupTiers:defaultMarkupTiers(), flatMarkup:35,
-      taxPct:0, roundTo:1, financeMonths:36, showMonthly:true, numOptions:5, spread:linspace(0.3,0.92,5), optionLayout:'stacked', enforceOrder:true, tierGapPct:12, addOnPct:25 },
+      taxPct:0, roundTo:1, financeMonths:36, showMonthly:true, numOptions:5, spread:linspace(0.3,0.92,5), optionLayout:'stacked', enforceOrder:true, tierGapPct:12, addOnPct:25, spreadCap:4 },
     tiers:defaultTiers(),
     book:seedBook()
   }, over||{});
@@ -549,7 +549,9 @@ function parseIssues(text){
     .split(/[\n,;]+/).map(x=>x.trim()).filter(x=>x.replace(/[^a-z]/gi,'').length>2);
 }
 function matchGroup(phrase){
-  const p=phrase.toLowerCase(); let best=null,bs=0;
+  const p=phrase.toLowerCase();
+  if(p.includes('tankless')) return 'tankless';   // "tankless water heater" is never a tank
+  let best=null,bs=0;
   for(const key in GROUPS){
     let s=0;
     (STRONG[key]||[]).forEach(kw=>{ if(p.includes(kw)) s+=1000; });
@@ -564,20 +566,45 @@ function groupTasks(key){ return co().book.filter(t=>t.g===key).slice().sort((a,
 const JB_STOP=new Set(['the','and','for','with','replace','install','installed','new','fix','repair','repaired','need','needs','needed','under','job','please','also','out','one','two','the','are','its','my','our','get','got','put','off','has','have','that','this','plumbing']);
 function jbWords(str){ return (str||'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(w=>w.length>2 && !JB_STOP.has(w)); }
 function relevanceScore(name, phrase){ const a=new Set(jbWords(phrase)); let s=0; for(const w of jbWords(name)){ if(a.has(w)) s++; } return s; }
-/* Candidate tasks for tiering: those relevant to the phrase, kept within a sane price band so a small
-   repair doesn't ladder up into a huge unrelated job (e.g. "replace p-trap" must NOT top out at a 40ft sewer line). */
+/* Non-standalone line items — add-ons, haul-away/labor lines, and component-only parts.
+   These should never anchor a whole-visit option (a toilet job must not lead with a "float rod",
+   a faucet job must not lead with a "spray head only"). They still appear if the customer names them. */
+const MINOR_RE=/\b(add for|reinstall|unstick|acid flush|float rod|vacuum breaker|floor drain cover|diverter|second man|remove existing|torque arrestor|arrestor|disposal of|burner)\b|\bonly\b|\bcartridge\b|spray (head|hose)|\bslide-bar\b|\bhandshower\b|\bwrench\b/i;
+function isMinorLine(name){ return MINOR_RE.test(name||''); }
+/* words that just name the group itself (toilet, faucet, drain…) — they don't distinguish tasks within it */
+function groupGeneric(groupKey){
+  const g=GROUPS[groupKey]||{}; const set=new Set();
+  jbWords(g.label||'').forEach(w=>set.add(w));
+  (g.syn||[]).forEach(k=>jbWords(k).forEach(w=>set.add(w)));
+  (STRONG[groupKey]||[]).forEach(k=>jbWords(k).forEach(w=>set.add(w)));
+  return set;
+}
+/* Candidate tasks for tiering: real, standalone jobs that fit what the customer actually said,
+   kept within a sane price band so a small job doesn't ladder up into a huge unrelated one
+   (e.g. "replace p-trap" must NOT top out at a 40ft sewer line, and "replace toilet" must NOT
+   lead with a float-rod repair part). */
 function candidateTasks(groupKey, phrase){
   const s=co().settings;
   const all=groupTasks(groupKey);
   if(all.length<=1) return all;
-  const scored=all.map(t=>({t, sc:relevanceScore(t.name, phrase)}));
-  const maxSc=Math.max(0,...scored.map(x=>x.sc));
-  let cand = (maxSc>0) ? scored.filter(x=>x.sc>0).map(x=>x.t) : all.slice();
-  cand.sort((a,b)=>taskPrice(a,s)-taskPrice(b,s));
-  const cap = s.spreadCap || 8;               // top option stays within cap× the cheapest relevant one
-  const base = taskPrice(cand[0],s) || 1;
-  let banded = cand.filter(t=> taskPrice(t,s) <= base*cap );
-  if(!banded.length) banded=[cand[0]];
+  // distinguishing words = what the customer said beyond the group's own name
+  const gen=groupGeneric(groupKey);
+  const specific=new Set(jbWords(phrase).filter(w=>!gen.has(w)));
+  const asked=(name)=>{ for(const w of jbWords(name)){ if(specific.has(w)) return true; } return false; };
+  // if they named something specific that matches tasks, narrow to those; otherwise consider the whole group
+  let pool = specific.size ? all.filter(t=>asked(t.name)) : [];
+  if(pool.length<1) pool=all.slice();
+  // drop non-standalone add-on / component lines unless the customer explicitly named them
+  const core = pool.filter(t=> !isMinorLine(t.name) || asked(t.name));
+  if(core.length>=1) pool=core;
+  pool.sort((a,b)=>taskPrice(a,s)-taskPrice(b,s));
+  const cap = s.spreadCap || 4;               // top option stays within cap× the cheapest real one
+  const base = taskPrice(pool[0],s) || 1;
+  let banded = pool.filter(t=> taskPrice(t,s) <= base*cap );
+  if(!banded.length) banded=[pool[0]];
+  // if the band is thinner than the number of options, widen it so tiers don't duplicate
+  const need = s.numOptions || 3;
+  if(banded.length < need) banded = pool.slice(0, Math.max(need, banded.length));
   return banded;
 }
 
@@ -1019,8 +1046,20 @@ function openGroup(k){
   const c=co(),s=c.settings; const label=k==='custom'?'Your Custom Tasks':GROUPS[k].label;
   const ts=c.book.filter(t=>t.g===k).sort((a,b)=>taskPrice(a,s)-taskPrice(b,s));
   openModal(esc(label), `<table class="tbl"><thead><tr><th>Task</th><th>Cost</th><th>Price</th><th></th></tr></thead><tbody>
-    ${ts.map(t=>`<tr><td><b>${esc(t.name)}</b>${t.tier?` <span class="pillcat">${esc(t.tier)}</span>`:''}${t.custom?' <span class="pillcat" style="background:#e9f6ef;color:#2e7d5b">field-built</span>':''}</td><td class="mono mini">${fmt2(t.cost||0)}</td><td class="mono"><b>${fmt(taskPrice(t,s))}</b></td><td style="text-align:right"><button class="btn btn-ghost btn-sm" onclick="editBookTask('${t.id}')">Edit</button></td></tr>`).join('')}
-  </tbody></table><div style="margin-top:14px;text-align:right"><button class="btn btn-red btn-sm" onclick="closeModal();openCustomTask('',null)">${ICO.plus} Build a task</button></div>`);
+    ${ts.map(t=>`<tr id="brow_${t.id}"><td><b>${esc(t.name)}</b>${t.tier?` <span class="pillcat">${esc(t.tier)}</span>`:''}${t.custom?' <span class="pillcat" style="background:#e9f6ef;color:#2e7d5b">field-built</span>':''}</td><td class="mono mini">${fmt2(t.cost||0)}</td><td class="mono"><b>${fmt(taskPrice(t,s))}</b></td><td style="text-align:right;white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="editBookTask('${t.id}')">Edit</button> <button class="btn btn-ghost btn-sm" style="color:var(--red)" title="Delete task" onclick="confirmDeleteTask('${t.id}','${k}')">Delete</button></td></tr>`).join('')}
+  </tbody></table><p class="mini" style="margin:12px 0 0">Delete removes a task from this shop's price book so it stops showing up in options. Syncs to your other devices automatically.</p><div style="margin-top:10px;text-align:right"><button class="btn btn-red btn-sm" onclick="closeModal();openCustomTask('',null)">${ICO.plus} Build a task</button></div>`);
+}
+function confirmDeleteTask(id,k){
+  const t=co().book.find(x=>x.id===id); if(!t) return;
+  const row=document.getElementById('brow_'+id); if(!row) return;
+  row.innerHTML=`<td colspan="4" style="background:#fff5f5"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><span>Delete <b>${esc(t.name)}</b> from your price book?</span><span style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="openGroup('${k}')">Cancel</button> <button class="btn btn-red btn-sm" onclick="deleteBookTask('${id}','${k}')">Delete task</button></span></div></td>`;
+}
+function deleteBookTask(id,k){
+  const c=co(); const i=c.book.findIndex(x=>x.id===id); if(i<0) return;
+  const name=c.book[i].name; c.book.splice(i,1); saveState();
+  const remaining=c.book.filter(t=>t.g===k).length;
+  if(remaining>0) openGroup(k); else { closeModal(); render(); }
+  toast('Deleted "'+name+'"');
 }
 
 /* ================= VIEW: ADMIN (pricing engine) ================= */
