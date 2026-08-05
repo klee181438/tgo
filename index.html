@@ -844,7 +844,7 @@ function renderOptions(){
       </div>
       <div class="opt-body">
         <ul class="lines">
-          ${opt.lines.map((l,li)=>{ const tk=taskById(l.taskId); if(!tk)return''; return `<li class="li"><div class="lt"><span class="lname">${esc(tk.name)}${l.addon?' <span class="editflag">add-on</span>':''}${tk.oneOff?' <span class="editflag">edited</span>':''}</span><span class="lprice">${fmt(effLine(l))}</span></div><div class="ldesc">${esc(tk.desc||genDesc(tk))}</div>${l.adjusted?'<div class="ldesc" style="color:#8a6d00">↑ nudged up to keep tiers in order</div>':''}<div class="lact">${l.groupKey?`<span class="lswap" style="color:${t.color}" onclick="swapLine(${oi},${li})">swap ⌄</span>`:''}<span class="lswap" style="color:${t.color}" onclick="editLine(${oi},${li})">edit ✎</span></div></li>`; }).join('')}
+          ${opt.lines.map((l,li)=>({l,li})).sort((a,b)=>effLine(b.l)-effLine(a.l)).map(({l,li})=>{ const tk=taskById(l.taskId); if(!tk)return''; return `<li class="li"><div class="lt"><span class="lname">${esc(tk.name)}${l.addon?' <span class="editflag">add-on</span>':''}${tk.oneOff?' <span class="editflag">edited</span>':''}</span><span class="lprice">${fmt(effLine(l))}</span></div><div class="ldesc">${esc(tk.desc||genDesc(tk))}</div>${l.adjusted?'<div class="ldesc" style="color:#8a6d00">↑ nudged up to keep tiers in order</div>':''}<div class="lact">${l.groupKey?`<span class="lswap" style="color:${t.color}" onclick="swapLine(${oi},${li})">swap ⌄</span>`:''}<span class="lswap" style="color:${t.color}" onclick="editLine(${oi},${li})">edit ✎</span></div></li>`; }).join('')}
         </ul>
         <button class="btn btn-block" style="${btn};color:#fff" onclick="choose(${oi})">Choose ${esc(t.name)}</button>
       </div></div>`;
@@ -956,7 +956,7 @@ function renderReceipt(){
       <div style="font-size:12px;opacity:.85;margin-top:4px">${opt.lines.length} items · one flat price</div>
     </div>
     <div class="r-body">
-      ${opt.lines.map(l=>{const tk=taskById(l.taskId);return tk?`<div class="line"><span><b>${esc(tk.name)}</b>${l.addon?' <span class="editflag">add-on</span>':''}<div class="mini" style="margin-top:2px">${esc(genDesc(tk))}</div></span><span class="mono">${fmt(effLine(l))}</span></div>`:'';}).join('')}
+      ${opt.lines.slice().sort((a,b)=>effLine(b)-effLine(a)).map(l=>{const tk=taskById(l.taskId);return tk?`<div class="line"><span><b>${esc(tk.name)}</b>${l.addon?' <span class="editflag">add-on</span>':''}<div class="mini" style="margin-top:2px">${esc(genDesc(tk))}</div></span><span class="mono">${fmt(effLine(l))}</span></div>`:'';}).join('')}
       ${s.showMonthly?`<div class="line"><span class="mini">Financing available</span><span class="mini">~${fmt(monthly(total,s.financeMonths))}/mo · ${s.financeMonths}mo</span></div>`:''}
       <div class="line total"><span>Total (flat rate)</span><span class="mono">${fmt(total)}</span></div>
       <div style="display:flex;gap:10px;margin-top:18px">
