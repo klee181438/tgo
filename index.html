@@ -172,6 +172,7 @@ h1,h2,h3,h4{margin:0;line-height:1.2}
 </style>
 </head>
 <body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <div id="gate" class="gate">
   <div class="box">
@@ -179,11 +180,16 @@ h1,h2,h3,h4{margin:0;line-height:1.2}
     <h2 style="font-size:21px">True Grit Options</h2>
     <p style="color:var(--mute);font-size:13.5px;margin:6px 0 20px">On-the-fly options for the field</p>
     <div class="field" style="text-align:left">
-      <label>Access code</label>
-      <input id="gatePin" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Enter access code" onkeydown="if(event.key==='Enter')tryLogin()">
-      <div class="hint">Enter the code from your shop admin.</div>
+      <label>Email</label>
+      <input id="gateEmail" type="email" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="you@shop.com">
     </div>
-    <button class="btn btn-red btn-lg btn-block" onclick="tryLogin()">Enter</button>
+    <div class="field" style="text-align:left">
+      <label>Password</label>
+      <input id="gatePass" type="password" autocomplete="current-password" placeholder="Your password" onkeydown="if(event.key==='Enter')tryLogin()">
+    </div>
+    <button class="btn btn-red btn-lg btn-block" id="gateBtn" onclick="tryLogin()">Sign in</button>
+    <div class="hint" id="gateMsg" style="margin-top:10px;min-height:16px"></div>
+    <div style="margin-top:8px"><button type="button" onclick="toggleGateMode()" style="background:none;border:none;color:var(--red);font-weight:700;cursor:pointer;font-size:13px;text-decoration:underline;padding:0">New here? Create your account</button></div>
   </div>
 </div>
 
@@ -391,33 +397,30 @@ let memFallback=null;
 function loadState(){ try{const r=localStorage.getItem(STORE_KEY);if(r)return JSON.parse(r);}catch(e){if(memFallback)return memFallback;} return null; }
 function saveState(){ try{localStorage.setItem(STORE_KEY,JSON.stringify(DB));}catch(e){memFallback=JSON.parse(JSON.stringify(DB));} if(!window.__syncing) scheduleSync(); }
 
-/* ================= TEAM SYNC (Supabase, price book + pricing) ================= */
-function syncCfg(){ return (DB.sync&&DB.sync.on&&DB.sync.url&&DB.sync.anonKey)?DB.sync:null; }
-function sbHeaders(cfg){ return {'apikey':cfg.anonKey,'Authorization':'Bearer '+cfg.anonKey,'Content-Type':'application/json'}; }
-async function sbPullRows(){ const cfg=syncCfg(); if(!cfg) return null;
-  try{ const r=await fetch(cfg.url.replace(/\/$/,'')+'/rest/v1/tg_companies?select=*',{headers:sbHeaders(cfg)}); if(!r.ok) return null; return await r.json(); }catch(e){ return null; } }
-async function sbUpsert(c){ const cfg=syncCfg(); if(!cfg) return;
-  try{ await fetch(cfg.url.replace(/\/$/,'')+'/rest/v1/tg_companies',{method:'POST',headers:Object.assign({Prefer:'resolution=merge-duplicates,return=minimal'},sbHeaders(cfg)),body:JSON.stringify({id:c.id,name:c.name,settings:c.settings,tiers:c.tiers,book:c.book,updated_at:new Date().toISOString()})}); }catch(e){}
+/* ================= CLOUD SYNC (Supabase Auth + tenants) ================= */
+function authed(){ return !!(ME && ME.uid); }
+async function sbPullRows(){ if(!authed()) return null;
+  try{ const {data,error}=await sb.from('tenants').select('id,name,slug,settings,tiers,book,status').order('name'); if(error) return null; return data; }catch(e){ return null; } }
+async function sbUpsert(c){ if(!authed()) return;
+  try{ await sb.from('tenants').update({name:c.name,settings:c.settings,tiers:c.tiers,book:c.book}).eq('id',c.id); }catch(e){}
 }
-async function sbDelete(id){ const cfg=syncCfg(); if(!cfg) return; try{ await fetch(cfg.url.replace(/\/$/,'')+'/rest/v1/tg_companies?id=eq.'+encodeURIComponent(id),{method:'DELETE',headers:sbHeaders(cfg)}); }catch(e){} }
-let __syncT; function scheduleSync(){ if(!syncCfg())return; clearTimeout(__syncT); __syncT=setTimeout(()=>{ (DB.companies||[]).forEach(c=>sbUpsert(c)); }, 900); }
+async function sbDelete(id){ /* shops are removed from the OptionPush Admin Console */ }
+let __syncT; function scheduleSync(){ if(!authed())return; clearTimeout(__syncT); __syncT=setTimeout(()=>{ (DB.companies||[]).forEach(c=>sbUpsert(c)); }, 900); }
 async function pullAndApply(){ const rows=await sbPullRows(); if(rows===null) return 'offline';
-  if(rows.length===0){ window.__syncing=true; for(const c of DB.companies) await sbUpsert(c); window.__syncing=false; return 'seeded'; }
+  if(rows.length===0){ return 'empty'; }
   window.__syncing=true;
   DB.companies=rows.map(x=>({id:x.id,name:x.name,settings:x.settings,tiers:x.tiers,book:x.book}));
-  if(!DB.companies.find(c=>c.id===DB.activeCompanyId)) DB.activeCompanyId=DB.companies[0].id;
+  const wanted=(ME&&ME.tenantId)?ME.tenantId:DB.activeCompanyId;
+  DB.activeCompanyId = DB.companies.find(c=>c.id===wanted) ? wanted : DB.companies[0].id;
   saveState(); window.__syncing=false; return 'pulled';
 }
-async function startSync(){ if(!syncCfg())return; const res=await pullAndApply(); if(res==='pulled') render();
+async function startSync(){ if(!authed())return; const res=await pullAndApply(); if(res==='pulled') render();
   if(!window.__syncBound){ window.__syncBound=true; window.addEventListener('focus',async()=>{ if(await pullAndApply()==='pulled') render(); }); }
 }
 async function syncNow(){ toast('Syncing…'); const res=await pullAndApply();
-  if(res==='offline'){ toast('Can’t reach the database — check URL & key'); return; }
-  render();
-  toast(res==='seeded'?'Published your book to the team':'Synced — pulled the latest');
+  if(res==='offline'){ toast('Can’t reach the database'); return; }
+  render(); toast('Synced — pulled the latest');
 }
-async function publishMine(){ if(!syncCfg()){toast('Turn Team Sync on first');return;} toast('Publishing…'); window.__syncing=true; for(const c of DB.companies) await sbUpsert(c); window.__syncing=false; toast('Published your book to the team'); }
-function setSync(k,v){ if(!DB.sync)DB.sync={}; DB.sync[k]=(k==='on')?(v==='1'||v===true):(typeof v==='string'?v.trim():v); saveState(); if(k==='on') startSync(); render(); }
 
 /* ================= SEED ================= */
 function defaultMarkupTiers(){ // from True Grit's HCP sliding scale
@@ -457,11 +460,11 @@ function seed(){ return { masterName:'True Grit Software Co.', activeCompanyId:'
 let DB=loadState()||seed();
 if(!DB.companies||!DB.companies.length){DB=seed();saveState();}
 if(!DB.ai) DB.ai={enabled:false,key:'',model:'claude-3-5-haiku-latest'};
-/* Team Sync config — Supabase URL + anon (public) key. Safe to bake into the hosted file. */
+/* Supabase Auth + tenants. The anon (public) key is safe to bake into the hosted file. */
 const SUPABASE_URL='https://wctpjtfvdhfejrkiiwdw.supabase.co';
 const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndjdHBqdGZ2ZGhmZWpya2lpd2R3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODMwNTYsImV4cCI6MjEwMDg1OTA1Nn0.2zGJnixNVu7bRs4Ryb28M4Ntbdt_dBJ_oHOt7gPSoAg';
-if(SUPABASE_URL&&SUPABASE_ANON){ DB.sync={url:SUPABASE_URL,anonKey:SUPABASE_ANON,on:(DB.sync&&DB.sync.on===false)?false:true}; }
-else if(!DB.sync){ DB.sync={url:'',anonKey:'',on:false}; }
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {auth:{persistSession:true, autoRefreshToken:true}});
+let ME={uid:null, role:null, tenantId:null, email:null};
 
 /* ================= SESSION ================= */
 let ROLE=null, TAB='jobbuilder';
@@ -651,18 +654,30 @@ function openModal(title,body){ document.getElementById('modalRoot').innerHTML=`
 function closeModal(){ document.getElementById('modalRoot').innerHTML=''; }
 
 /* ================= AUTH / NAV ================= */
-const GATE={'ee5d87ca2db540faf18c4148771bba063bb0a09565f5530094e1d89519287009':'master','5749b650db1aa63ec8e12a149e829ccc0ec8bc96c2861225505cb6036c9ec6c9':'staff'};
-async function sha256hex(s){ try{ const b=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''); }catch(e){ return '__nohash__'; } }
-async function tryLogin(){ const p=document.getElementById('gatePin').value.trim().toLowerCase();
-  if(!p){return;}
-  const h=await sha256hex(p); const role=GATE[h];
-  if(role){ try{localStorage.setItem('tg_gate',role);}catch(e){} ROLE=role;TAB='jobbuilder';enterApp(); }
-  else{ toast('Incorrect code'); document.getElementById('gatePin').value=''; } }
+let __gateMode='signin';
+function toggleGateMode(){ __gateMode=(__gateMode==='signin')?'signup':'signin'; const h=document.querySelector('#gate h2'); if(h)h.textContent=(__gateMode==='signin')?'True Grit Options':'Create your account'; const b=document.getElementById('gateBtn'); if(b)b.textContent=(__gateMode==='signin')?'Sign in':'Create account'; gmsg(''); }
+function gmsg(t){ const m=document.getElementById('gateMsg'); if(m)m.textContent=t||''; }
+async function tryLogin(){ const email=(document.getElementById('gateEmail').value||'').trim().toLowerCase(); const pass=document.getElementById('gatePass').value; if(!email||!pass){ gmsg('Enter your email and password.'); return; }
+  const btn=document.getElementById('gateBtn'); btn.textContent='…';
+  if(__gateMode==='signin'){ const {error}=await sb.auth.signInWithPassword({email,password:pass}); if(error){ gmsg(error.message); btn.textContent='Sign in'; return; } boot(); }
+  else { const {data,error}=await sb.auth.signUp({email,password:pass}); if(error){ gmsg(error.message); btn.textContent='Create account'; return; } if(data.session){ boot(); } else { gmsg('Account created — check your email to confirm, then sign in.'); btn.textContent='Create account'; __gateMode='signin'; } }
+}
+async function boot(){ const {data:{session}}=await sb.auth.getSession();
+  if(!session){ document.getElementById('gate').classList.remove('hidden'); document.getElementById('app').classList.add('hidden'); return; }
+  const {data:prof}=await sb.from('profiles').select('role,tenant_id,email').eq('id',session.user.id).single();
+  const r=prof?prof.role:'tech';
+  ME={uid:session.user.id, role:r, tenantId:prof?prof.tenant_id:null, email:(prof&&prof.email)||session.user.email};
+  ROLE = (r==='superadmin')?'master':((r==='owner')?'owner':'staff'); TAB='jobbuilder';
+  await pullAndApply();
+  try{ const sp=new URLSearchParams(location.search).get('shop'); if(sp && ROLE==='master' && DB.companies.find(c=>c.id===sp)) DB.activeCompanyId=sp; }catch(e){}
+  enterApp();
+}
 function enterApp(){ document.getElementById('gate').classList.add('hidden'); document.getElementById('app').classList.remove('hidden'); render(); startSync(); }
-function logout(){ try{localStorage.removeItem('tg_gate');}catch(e){} ROLE=null; document.getElementById('app').classList.add('hidden'); document.getElementById('gate').classList.remove('hidden'); document.getElementById('gatePin').value=''; }
+async function logout(){ try{ await sb.auth.signOut(); }catch(e){} ROLE=null; ME={uid:null,role:null,tenantId:null,email:null}; document.getElementById('app').classList.add('hidden'); document.getElementById('gate').classList.remove('hidden'); const p=document.getElementById('gatePass'); if(p)p.value=''; }
 const ICO={bolt:'<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L4.5 13.5H11l-1 8.5L19.5 10H13z"/></svg>',book:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M19 3v18"/></svg>',gear:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 0 1-4 0v-.1A1.6 1.6 0 0 0 7 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 3.5 14H3a2 2 0 0 1 0-4h.1A1.6 1.6 0 0 0 4.6 7a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 10 3.5V3a2 2 0 0 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.7H21a2 2 0 0 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>',build:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14"/></svg>',out:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>',plus:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>',check:'<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="#fff" stroke-width="3.5"><path d="M20 6L9 17l-5-5"/></svg>'};
 function renderNav(){
-  const tabs=[['jobbuilder','Job Builder',ICO.bolt],['book','Price Book',ICO.book],['admin','Pricing',ICO.gear]];
+  const tabs=[['jobbuilder','Job Builder',ICO.bolt],['book','Price Book',ICO.book]];
+  if(ROLE==='master'||ROLE==='owner') tabs.push(['admin','Pricing',ICO.gear]);
   if(ROLE==='master') tabs.push(['master','Master',ICO.build]);
   document.getElementById('topnav').innerHTML=tabs.map(([id,l,ic])=>`<button class="${TAB===id?'active':''}" onclick="go('${id}')">${ic}<span>${l}</span></button>`).join('')+`<button onclick="logout()" title="Sign out">${ICO.out}</button>`;
   document.getElementById('companyName').textContent=co().name;
@@ -1008,16 +1023,30 @@ function renderAdmin(){
     <div style="display:flex;align-items:center;gap:12px"><button class="btn btn-ghost btn-sm" onclick="testAI()">Test connection</button><span id="aiStatus" class="mini"></span></div>
   </div>
 
-  <div class="card card-pad" style="margin-top:22px">
-    <div class="section-title">Team Sync <span style="color:var(--mute);font-weight:600;text-transform:none;letter-spacing:0">— shared price book across tablets</span></div>
-    <p class="mini" style="margin:-4px 0 12px">Point every tablet at your Supabase so the price book, rates &amp; tiers stay in sync. Edits here publish to the team; each tablet pulls the latest when it opens (and when you tap Sync now). The anon (public) key is safe to store here.</p>
+  ${(ROLE==='master'||ROLE==='owner')?`<div class="card card-pad" style="margin-top:22px">
+    <div class="section-title">Team</div>
+    <p class="mini" style="margin:-4px 0 10px">Invite people to ${esc(co().name)} — they get an email to set their own password, then sign in with their personal login (no shared code).</p>
     <div class="row2">
-      <div class="field"><label>Team sync</label><select onchange="setSync('on',this.value)"><option value="0" ${!(DB.sync&&DB.sync.on)?'selected':''}>Off — this device only</option><option value="1" ${(DB.sync&&DB.sync.on)?'selected':''}>On</option></select></div>
-      <div class="field"><label>Supabase Project URL</label><input value="${esc((DB.sync&&DB.sync.url)||'')}" placeholder="https://xxxx.supabase.co" onchange="setSync('url',this.value)"></div>
+      <div class="field"><label>Email</label><input id="tmEmail" type="email" placeholder="name@company.com"></div>
+      ${ROLE==='master'?`<div class="field"><label>Role</label><select id="tmRole"><option value="tech">Tech — Job Builder &amp; Price Book</option><option value="owner">Owner — full shop admin</option></select></div>`:`<input type="hidden" id="tmRole" value="tech">`}
     </div>
-    <div class="field"><label>Supabase anon (public) key</label><input value="${esc((DB.sync&&DB.sync.anonKey)||'')}" placeholder="eyJhbGc..." onchange="setSync('anonKey',this.value)"></div>
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="syncNow()">Sync now (pull latest)</button><button class="btn btn-red btn-sm" onclick="publishMine()">Publish my book to team</button><span id="syncStatus" class="mini"></span></div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="btn btn-red btn-sm" onclick="inviteMember()">Send invite</button><span id="tmStatus" class="mini"></span></div>
+  </div>`:''}
+  <div class="card card-pad" style="margin-top:22px">
+    <div class="section-title">Sync</div>
+    <p class="mini" style="margin:-4px 0 8px">Your price book, rates &amp; tiers sync automatically to the cloud and to every device signed into your shop — edits save as you go.</p>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="syncNow()">Sync now (pull latest)</button><span id="syncStatus" class="mini"></span></div>
   </div>`;
+}
+async function inviteMember(){ const el=document.getElementById('tmEmail'); const email=(el?el.value:'').trim().toLowerCase(); const rEl=document.getElementById('tmRole'); const role=(rEl&&rEl.value)||'tech'; const st=document.getElementById('tmStatus');
+  if(!email){ if(st)st.textContent='Enter an email'; return; }
+  if(st)st.textContent='Sending…';
+  try{ const {data:{session}}=await sb.auth.getSession(); const token=session&&session.access_token;
+    const r=await fetch(SUPABASE_URL+'/functions/v1/admin',{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+token,'apikey':SUPABASE_ANON},body:JSON.stringify({action:'invite_member',tenantId:co().id,email,role})});
+    const d=await r.json().catch(()=>({}));
+    if(r.ok){ if(st)st.textContent='Invite sent to '+email+' ('+(d.role||role)+')'; el.value=''; toast('Invite sent'); }
+    else { if(st)st.textContent='Error: '+(d.error||r.status); }
+  }catch(e){ if(st)st.textContent='Error: '+e; }
 }
 function setS(k,v){ const s=co().settings;
   if(k==='showMonthly'||k==='useSliding'||k==='enforceOrder') s[k]=(v==='1'||v===true);
@@ -1033,18 +1062,18 @@ function removeTier(i){ const c=co(); if(c.tiers.length<=2){toast('Keep at least
 
 /* ================= VIEW: MASTER ================= */
 function renderMaster(){
-  return `<div class="page-head"><h2>Master Admin</h2><p>${esc(DB.masterName)} — every company on the platform. Your licensing layer.</p></div>
+  return `<div class="page-head"><h2>Master Admin</h2><p>OptionPush — every shop on the platform. Your licensing layer.</p></div>
   <div class="stat-grid" style="margin-bottom:22px">
     <div class="stat"><div class="sv">${DB.companies.length}</div><div class="sl">Licensed companies</div></div>
     <div class="stat"><div class="sv">${DB.companies.reduce((a,c)=>a+c.book.length,0)}</div><div class="sl">Total tasks</div></div>
     <div class="stat"><div class="sv">${DB.companies.reduce((a,c)=>a+c.book.filter(t=>t.custom).length,0)}</div><div class="sl">Field-built tasks</div></div>
   </div>
   <div class="card card-pad">
-    <div style="display:flex;align-items:center;margin-bottom:14px"><div class="section-title" style="margin:0">Companies</div><button class="btn btn-red btn-sm" style="margin-left:auto" onclick="addCompany()">${ICO.plus} Add company</button></div>
+    <div style="display:flex;align-items:center;margin-bottom:14px"><div class="section-title" style="margin:0">Shops</div><a class="btn btn-ghost btn-sm" style="margin-left:auto;text-decoration:none" href="admin.html" target="_blank">Manage in Admin Console ↗</a></div>
     <table class="tbl"><thead><tr><th>Company</th><th>Labor</th><th>Markup</th><th>Tasks</th><th></th></tr></thead><tbody>
-    ${DB.companies.map(c=>`<tr><td><b>${esc(c.name)}</b>${c.id===DB.activeCompanyId?' <span class="pillcat" style="background:#e6f4ec;color:#2e7d5b">ACTIVE</span>':''}</td><td class="mono">${fmt(c.settings.laborRate)}</td><td class="mono">${c.settings.useSliding?'Sliding':c.settings.flatMarkup+'%'}</td><td>${c.book.length}</td><td style="text-align:right;white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="switchCompany('${c.id}')">Open</button><button class="btn btn-ghost btn-sm" onclick="deleteCompany('${c.id}')" style="color:var(--red)" ${DB.companies.length<=1?'disabled style=opacity:.4':''}>✕</button></td></tr>`).join('')}
+    ${DB.companies.map(c=>`<tr><td><b>${esc(c.name)}</b>${c.id===DB.activeCompanyId?' <span class="pillcat" style="background:#e6f4ec;color:#2e7d5b">ACTIVE</span>':''}</td><td class="mono">${fmt(c.settings.laborRate)}</td><td class="mono">${c.settings.useSliding?'Sliding':c.settings.flatMarkup+'%'}</td><td>${c.book.length}</td><td style="text-align:right"><button class="btn btn-ghost btn-sm" onclick="switchCompany('${c.id}')">Open</button></td></tr>`).join('')}
     </tbody></table>
-    <p class="mini" style="margin-top:14px">Each company is isolated — own rates, markup, tiers, and book. New licensees clone True Grit's starter book so they're productive day one.</p>
+    <p class="mini" style="margin-top:14px">Each shop is isolated — own rates, markup, tiers, and book. Add, invite, or suspend shops in the OptionPush Admin Console.</p>
   </div>`;
 }
 function switchCompany(id){ DB.activeCompanyId=id; saveState(); TAB='jobbuilder'; newJob(); toast('Now on '+co().name); }
@@ -1053,7 +1082,7 @@ function doAddCompany(){ const name=document.getElementById('ncName').value.trim
 function deleteCompany(id){ if(DB.companies.length<=1){toast('Keep at least one');return;} openModal('Remove company?', `<p style="color:var(--mute);margin:0 0 16px">Deletes the company and its book.</p><div style="display:flex;gap:10px"><button class="btn btn-ghost btn-block" onclick="closeModal()">Cancel</button><button class="btn btn-red btn-block" onclick="doDelCompany('${id}')">Delete</button></div>`); }
 function doDelCompany(id){ DB.companies=DB.companies.filter(c=>c.id!==id); if(DB.activeCompanyId===id)DB.activeCompanyId=DB.companies[0].id; saveState(); sbDelete(id); closeModal(); render(); }
 
-window.addEventListener('load',()=>{ let saved=null; try{saved=localStorage.getItem('tg_gate');}catch(e){} if(saved==='master'||saved==='staff'){ROLE=saved;TAB='jobbuilder';enterApp();return;} const g=document.getElementById('gatePin');if(g)g.focus();});
+window.addEventListener('load',()=>{ boot(); const g=document.getElementById('gateEmail'); if(g)g.focus(); });
 </script>
 </body>
 </html>
