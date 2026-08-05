@@ -557,7 +557,17 @@ function allGroups(){
   for(const k in custom) out[k]=Object.assign({}, out[k]||{}, custom[k]);
   const labels=(c&&c.settings&&c.settings.groupLabels)||{};
   for(const k in labels){ if(out[k]) out[k].label=labels[k]; }
+  const cats=(c&&c.settings&&c.settings.groupCats)||{};
+  for(const k in cats){ if(out[k]) out[k].cat=cats[k]; }
   return out;
+}
+/* sorted list of every category currently in use across this shop's groups */
+function allCategories(){ return Array.from(new Set(Object.values(allGroups()).map(g=>g.cat).filter(Boolean))).sort(); }
+/* set a group's category — built-in groups use a settings.groupCats override, custom groups store it directly */
+function setGroupCategory(k, cat){
+  const c=co(); cat=(cat||'').trim()||'Custom';
+  if(isCustomGroup(k)){ c.settings.groups[k]=Object.assign({}, c.settings.groups[k], {cat}); if(c.settings.groupCats) delete c.settings.groupCats[k]; }
+  else { if(!c.settings.groupCats) c.settings.groupCats={}; if(GROUPS[k] && cat===GROUPS[k].cat) delete c.settings.groupCats[k]; else c.settings.groupCats[k]=cat; }
 }
 function grp(k){ return allGroups()[k]; }
 function matchGroup(phrase){
@@ -1043,6 +1053,7 @@ function renderBook(){
   <div class="page-head"><h2>Price Book</h2><p>${c.book.length} tasks across your job groups. Real Profit Rhino prices — plus anything you build in the field.</p></div>
   <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px">
     <input placeholder="Search job groups…" value="${esc(bookSearch)}" oninput="bookSearch=this.value;document.getElementById('view').innerHTML=renderBook()" style="flex:1;min-width:200px;padding:12px 14px;border:1.5px solid var(--line);border-radius:11px">
+    <button class="btn btn-ghost btn-sm" onclick="manageCategories()">Categories</button>
     <button class="btn btn-ghost btn-sm" onclick="newJobGroup()">${ICO.plus} New job group</button>
     <button class="btn btn-red btn-sm" onclick="openCustomTask('',null)">${ICO.plus} Build a task</button>
   </div>
@@ -1089,15 +1100,17 @@ function deleteJobGroup(k){
   if(c.book.some(t=>t.g===k)){ toast('Delete its tasks first'); return; }
   const label=c.settings.groups[k].label; delete c.settings.groups[k];
   if(c.settings.groupLabels) delete c.settings.groupLabels[k];
+  if(c.settings.groupCats) delete c.settings.groupCats[k];
   saveState(); closeModal(); render(); toast('Deleted "'+label+'"');
 }
 function editGroup(k){
   const g=grp(k); if(!g) return; const mine=isCustomGroup(k);
+  const cats=allCategories();
   openModal('Edit group', `
     <div class="field"><label>Group name</label><input id="egLabel" value="${esc(g.label)}"></div>
-    ${mine?`<div class="field"><label>Category</label><input id="egCat" value="${esc(g.cat||'')}"></div>
-    <div class="field"><label>Match keywords <span class="mini" style="font-weight:600">(comma-separated)</span></label><input id="egSyn" value="${esc((g.syn||[]).join(', '))}"><div class="hint">Words a tech might type that should land in this group. The name is matched automatically.</div></div>`
-    :`<p class="mini" style="margin:-2px 0 4px">This is a built-in group — you can rename it here; its job-matching keywords stay as-is.</p>`}
+    <div class="field"><label>Category</label><input id="egCat" list="egCats" value="${esc(g.cat||'')}" placeholder="e.g. Kitchen"><datalist id="egCats">${cats.map(ct=>`<option value="${esc(ct)}">`).join('')}</datalist><div class="hint">Pick an existing category or type a new one — categories are the filter tabs at the top of your price book.</div></div>
+    ${mine?`<div class="field"><label>Match keywords <span class="mini" style="font-weight:600">(comma-separated)</span></label><input id="egSyn" value="${esc((g.syn||[]).join(', '))}"><div class="hint">Words a tech might type that should land in this group. The name is matched automatically.</div></div>`
+    :`<p class="mini" style="margin:-2px 0 4px">Built-in group — rename it or move it to another category; its job-matching keywords stay as-is.</p>`}
     <div style="display:flex;gap:10px;margin-top:16px"><button class="btn btn-ghost btn-block" onclick="openGroup('${k}')">Cancel</button><button class="btn btn-red btn-block" onclick="saveGroupEdit('${k}')">Save</button></div>`);
 }
 function saveGroupEdit(k){
@@ -1105,8 +1118,8 @@ function saveGroupEdit(k){
   if(!label){ toast('Enter a name'); return; }
   const dup=Object.entries(allGroups()).some(([kk,g])=>kk!==k && g.label.toLowerCase()===label.toLowerCase());
   if(dup){ toast('Another group already has that name'); return; }
+  const cat=(document.getElementById('egCat').value||'').trim()||'Custom';
   if(isCustomGroup(k)){
-    const cat=(document.getElementById('egCat').value||'').trim()||'Custom';
     const synRaw=(document.getElementById('egSyn').value||'').toLowerCase();
     const syn=Array.from(new Set([label.toLowerCase(), ...synRaw.split(',').map(x=>x.trim()).filter(Boolean)]));
     c.settings.groups[k]=Object.assign({}, c.settings.groups[k], {label, cat, syn});
@@ -1114,8 +1127,26 @@ function saveGroupEdit(k){
   } else {
     if(!c.settings.groupLabels) c.settings.groupLabels={};
     if(label===GROUPS[k].label) delete c.settings.groupLabels[k]; else c.settings.groupLabels[k]=label;
+    setGroupCategory(k, cat);   // built-in category override
   }
   saveState(); render(); openGroup(k); toast('Group updated');
+}
+/* ---- manage the category tabs themselves (rename a whole category across its groups) ---- */
+function manageCategories(){
+  const AG=allGroups(); const cats=allCategories();
+  const rows=cats.map(ct=>{ const n=Object.values(AG).filter(g=>g.cat===ct).length;
+    return `<div class="field" style="margin-bottom:10px"><label>${esc(ct)} <span class="mini" style="font-weight:600">· ${n} group${n>1?'s':''}</span></label><input id="cat_${esc(ct)}" value="${esc(ct)}"></div>`;
+  }).join('');
+  openModal('Categories', `<p class="mini" style="margin:0 0 12px">Rename a category to re-label its tab and move every group under it. To add a new category, set it on a group (New job group, or Edit → Category).</p>${rows}<div style="display:flex;gap:10px;margin-top:6px"><button class="btn btn-ghost btn-block" onclick="closeModal()">Cancel</button><button class="btn btn-red btn-block" onclick="saveCategories()">Save</button></div>`);
+}
+function saveCategories(){
+  const AG=allGroups(); const cats=allCategories(); let changed=0;
+  cats.forEach(ct=>{ const el=document.getElementById('cat_'+ct); if(!el) return; const nv=(el.value||'').trim(); if(!nv||nv===ct) return;
+    Object.keys(AG).forEach(k=>{ if(AG[k].cat===ct) setGroupCategory(k, nv); }); changed++;
+  });
+  saveState();
+  if(bookCat!=='All' && !allCategories().includes(bookCat)) bookCat='All';
+  closeModal(); render(); toast(changed?'Categories updated':'No changes');
 }
 function openGroup(k){
   const c=co(),s=c.settings; const mine=isCustomGroup(k);
