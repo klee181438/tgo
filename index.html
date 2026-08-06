@@ -467,7 +467,7 @@ function seed(){ return { masterName:'True Grit Software Co.', activeCompanyId:'
 
 let DB=loadState()||seed();
 if(!DB.companies||!DB.companies.length){DB=seed();saveState();}
-if(!DB.ai) DB.ai={enabled:false,key:'',model:'claude-3-5-haiku-latest'};
+if(!DB.ai) DB.ai={enabled:false,key:'',model:'claude-haiku-4-5'};
 /* Supabase Auth + tenants. The anon (public) key is safe to bake into the hosted file. */
 const SUPABASE_URL='https://wctpjtfvdhfejrkiiwdw.supabase.co';
 const SUPABASE_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndjdHBqdGZ2ZGhmZWpya2lpd2R3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODMwNTYsImV4cCI6MjEwMDg1OTA1Nn0.2zGJnixNVu7bRs4Ryb28M4Ntbdt_dBJ_oHOt7gPSoAg';
@@ -601,14 +601,20 @@ function groupGeneric(groupKey){
   (STRONG[groupKey]||[]).forEach(k=>jbWords(k).forEach(w=>set.add(w)));
   return set;
 }
+/* a stated tank/appliance size ("50 gallon", "50 gal", "50-gal") is a hard requirement, not a hint */
+function phraseGallons(phrase){ const out=[]; const re=/(\d{2,3})\s*-?\s*gal/gi; let m; while((m=re.exec((phrase||'').toLowerCase()))) out.push(m[1]); return out; }
+function taskMatchesGallons(name, gals){ const n=(name||'').toLowerCase(); return gals.some(g=> new RegExp('\\b'+g+'\\s*-?\\s*gal','i').test(n)); }
 /* Candidate tasks for tiering: real, standalone jobs that fit what the customer actually said,
    kept within a sane price band so a small job doesn't ladder up into a huge unrelated one
    (e.g. "replace p-trap" must NOT top out at a 40ft sewer line, and "replace toilet" must NOT
    lead with a float-rod repair part). */
 function candidateTasks(groupKey, phrase){
   const s=co().settings;
-  const all=groupTasks(groupKey);
+  let all=groupTasks(groupKey);
   if(all.length<=1) return all;
+  // hard size filter: if the customer named a tank size (e.g. "50 gallon"), only offer that size — when the book has it
+  const gals=phraseGallons(phrase);
+  if(gals.length){ const sized=all.filter(t=>taskMatchesGallons(t.name,gals)); if(sized.length) all=sized; }
   // distinguishing words = what the customer said beyond the group's own name
   const gen=groupGeneric(groupKey);
   const specific=new Set(jbWords(phrase).filter(w=>!gen.has(w)));
@@ -673,7 +679,7 @@ async function aiCall(system,user,maxTokens){
   if(!cfg.enabled||!cfg.key) throw new Error('AI is off');
   const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
     headers:{'content-type':'application/json','x-api-key':cfg.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:cfg.model||'claude-3-5-haiku-latest',max_tokens:maxTokens||500,system,messages:[{role:'user',content:user}]})});
+    body:JSON.stringify({model:cfg.model||'claude-haiku-4-5',max_tokens:maxTokens||500,system,messages:[{role:'user',content:user}]})});
   if(!res.ok){ let t=''; try{t=await res.text();}catch(e){} throw new Error('API '+res.status+(t?': '+t.slice(0,160):'')); }
   const d=await res.json();
   return (d.content&&d.content[0]&&d.content[0].text)||'';
@@ -1255,7 +1261,7 @@ function renderAdmin(){
     <p class="mini" style="margin:-4px 0 12px">Add your Anthropic API key to let the app read messy job notes and write customer descriptions. The key is stored only on this device and calls go straight to Anthropic. Everything works offline without it.</p>
     <div class="row2">
       <div class="field"><label>AI matching &amp; writing</label><select onchange="setAI('enabled',this.value)"><option value="0" ${!(DB.ai&&DB.ai.enabled)?'selected':''}>Off — use offline matching</option><option value="1" ${(DB.ai&&DB.ai.enabled)?'selected':''}>On</option></select></div>
-      <div class="field"><label>Model</label><input value="${esc((DB.ai&&DB.ai.model)||'claude-3-5-haiku-latest')}" onchange="setAI('model',this.value)"></div>
+      <div class="field"><label>Model</label><input value="${esc((DB.ai&&DB.ai.model)||'claude-haiku-4-5')}" onchange="setAI('model',this.value)"></div>
     </div>
     <div class="field"><label>Anthropic API key</label><input type="password" value="${esc((DB.ai&&DB.ai.key)||'')}" placeholder="sk-ant-..." onchange="setAI('key',this.value)"><div class="hint">Stored only on this device. Get one at console.anthropic.com.</div></div>
     <div style="display:flex;align-items:center;gap:12px"><button class="btn btn-ghost btn-sm" onclick="testAI()">Test connection</button><span id="aiStatus" class="mini"></span></div>
