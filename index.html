@@ -456,7 +456,7 @@ function newCompany(id,name,over){
   return Object.assign({
     id,name,
     settings:{ laborRate:225, useSliding:true, markupTiers:defaultMarkupTiers(), flatMarkup:35,
-      taxPct:0, roundTo:1, financeMonths:36, showMonthly:true, numOptions:5, spread:linspace(0.3,0.92,5), optionLayout:'stacked', enforceOrder:true, tierGapPct:12, addOnPct:25, spreadCap:4, featuredPos:'middle' },
+      taxPct:0, roundTo:1, financeMonths:36, showMonthly:true, numOptions:5, spread:linspace(0.3,0.92,5), optionLayout:'stacked', enforceOrder:true, tierGapPct:12, addOnPct:25, spreadCap:4, featuredPos:'middle', financeApr:0, wisetackUrl:'' },
     tiers:defaultTiers(),
     book:seedBook()
   }, over||{});
@@ -503,7 +503,8 @@ function taskPrice(t,s){ // imported/locked = fixed price; custom = computed
   if(t.custom && !t.priceLocked) return priceCustom(t.laborHours||0, t.materialCost||0, s);
   return t.price;
 }
-function monthly(p,m){ return Math.ceil(p/m); }
+/* amortized monthly payment: real loan math when an APR is set, else simple divide (0% promo) */
+function monthly(p,m,apr){ m=m||1; const r=(apr||0)/100/12; if(r<=0) return Math.ceil(p/m); return Math.ceil(p*r/(1-Math.pow(1+r,-m))); }
 
 /* clean, customer-facing description of the WORK (name shown separately) */
 const DESC_TMPL={
@@ -876,7 +877,7 @@ function renderOptions(){
         <div class="tier-name">${esc(t.name)}</div>
         <div class="tier-tag">${esc(t.tag)}</div>
         <div class="price">${fmt(total)}</div>
-        <div class="price-sub">${s.showMonthly?`or ~${fmt(monthly(total,s.financeMonths))}/mo financing`:'flat rate — all in'}</div>
+        <div class="price-sub">${s.showMonthly?`as low as ${fmt(monthly(total,s.financeMonths,s.financeApr))}/mo${s.wisetackUrl?' · Wisetack':''}`:'flat rate — all in'}</div>
       </div>
       <div class="opt-body">
         <ul class="lines">
@@ -897,6 +898,10 @@ function renderOptions(){
     </div>
     ${jb.options.some(o=>o.outOfOrder)?`<div class="callout" style="margin-bottom:14px">⚠ A tier is priced at or below the one beneath it. Adjust a line, or turn on <b>Keep tiers in price order</b> under Pricing to fix this automatically.</div>`:''}
     <div class="options ${layout==='stacked'?'stacked':''}">${cards}</div>
+    ${(s.showMonthly&&s.wisetackUrl)?`<div style="text-align:center;margin-top:22px">
+      <a href="${esc(s.wisetackUrl)}" target="_blank" rel="noopener" class="btn btn-red" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;padding:13px 22px">See if you prequalify — Wisetack →</a>
+      <p style="color:var(--mute);font-size:11.5px;max-width:560px;margin:10px auto 0;line-height:1.5">Monthly amounts are estimates. Financing through Wisetack — actual terms (0–35.9% APR) are based on your credit and the amount. Checking your rate is a soft pull and won't affect your credit score.</p>
+    </div>`:''}
     <p style="text-align:center;color:var(--mute);font-size:12.5px;margin-top:20px">Each option is one guaranteed price · itemized for the customer · ${esc(c.name)} · licensed &amp; insured</p>`;
 }
 
@@ -993,8 +998,9 @@ function renderReceipt(){
     </div>
     <div class="r-body">
       ${opt.lines.slice().sort((a,b)=>effLine(b)-effLine(a)).map(l=>{const tk=taskById(l.taskId);return tk?`<div class="line"><span><b>${esc(tk.name)}</b>${l.addon?' <span class="editflag">add-on</span>':''}<div class="mini" style="margin-top:2px">${esc(genDesc(tk))}</div></span><span class="mono">${fmt(effLine(l))}</span></div>`:'';}).join('')}
-      ${s.showMonthly?`<div class="line"><span class="mini">Financing available</span><span class="mini">~${fmt(monthly(total,s.financeMonths))}/mo · ${s.financeMonths}mo</span></div>`:''}
+      ${s.showMonthly?`<div class="line"><span class="mini">Financing — as low as</span><span class="mini">${fmt(monthly(total,s.financeMonths,s.financeApr))}/mo · ${s.financeMonths}mo${s.financeApr>0?` · ${s.financeApr}% APR`:''}</span></div>`:''}
       <div class="line total"><span>Total (flat rate)</span><span class="mono">${fmt(total)}</span></div>
+      ${(s.showMonthly&&s.wisetackUrl)?`<a href="${esc(s.wisetackUrl)}" target="_blank" rel="noopener" class="btn btn-red btn-block" style="text-decoration:none;margin-top:12px">Prequalify with Wisetack →</a><p class="mini" style="text-align:center;margin:8px 0 0;color:var(--mute)">Estimate. Real terms (0–35.9% APR) from a soft credit check — no score impact.</p>`:''}
       <div style="display:flex;gap:10px;margin-top:18px">
         <button class="btn btn-ghost btn-block" onclick="jb.presented=false;render()">← Edit</button>
         <button class="btn btn-dark btn-block" onclick="newJob()">New Job</button>
@@ -1227,8 +1233,10 @@ function renderAdmin(){
       <div class="field"><label>Options per job</label><select onchange="setS('numOptions',this.value)">${[2,3,4,5].map(n=>`<option value="${n}" ${s.numOptions==n?'selected':''}>${n} options</option>`).join('')}</select></div>
       <div class="field"><label>"Most Popular" badge</label><select onchange="setS('featuredPos',this.value)"><option value="none" ${s.featuredPos==='none'?'selected':''}>None</option><option value="middle" ${(s.featuredPos==null||s.featuredPos==='middle')?'selected':''}>Middle option (auto)</option>${Array.from({length:s.numOptions},(_,i)=>`<option value="${i+1}" ${String(s.featuredPos)===String(i+1)?'selected':''}>Option ${i+1}${i===0?' (lowest)':(i===s.numOptions-1?' (highest)':'')}</option>`).join('')}</select><div class="hint">Which option carries the tag. "Middle" auto-centers it whatever your option count.</div></div>
       <div class="field"><label>Show financing / mo</label><select onchange="setS('showMonthly',this.value)"><option value="1" ${s.showMonthly?'selected':''}>Yes</option><option value="0" ${!s.showMonthly?'selected':''}>No</option></select></div>
-      <div class="field"><label>Financing months</label><input type="number" value="${s.financeMonths}" onchange="setS('financeMonths',this.value)"></div>
+      <div class="field"><label>Financing term (months)</label><input type="number" value="${s.financeMonths}" onchange="setS('financeMonths',this.value)"></div>
+      <div class="field"><label>Est. APR for payment display</label><div class="inline-affix"><input type="number" step="0.1" value="${s.financeApr!=null?s.financeApr:0}" onchange="setS('financeApr',this.value)"><span class="suf">%</span></div><div class="hint">Used only to estimate the "as low as" monthly figure. Set it to the representative rate you advertise (0 = show as 0% promo). The customer's real rate comes from Wisetack prequal.</div></div>
     </div>
+    <div class="field"><label>Wisetack prequalify link</label><input value="${esc(s.wisetackUrl||'')}" placeholder="https://wisetack.us/#/..../prequalify" onchange="setS('wisetackUrl',this.value)"><div class="hint">Your customer-facing Wisetack prequal URL. Adds a "Prequalify with Wisetack" button to the options and receipt so customers get their real payment (soft credit check). Each shop uses its own.</div></div>
     <div class="row2">
       <div class="field"><label>Keep tiers in price order</label><select onchange="setS('enforceOrder',this.value)"><option value="1" ${s.enforceOrder!==false?'selected':''}>Yes — auto-adjust so each stays above the one below</option><option value="0" ${s.enforceOrder===false?'selected':''}>No — just warn me</option></select><div class="hint">Prevents a lower tier from being priced above a higher one after edits.</div></div>
       <div class="field"><label>Add-on rate — extra tasks</label><div class="inline-affix"><input type="number" value="${s.addOnPct!=null?s.addOnPct:25}" onchange="setS('addOnPct',this.value)"><span class="suf">% off</span></div><div class="hint">On multi-item jobs the biggest task is full price; every cheaper task is discounted this much automatically (you're already onsite). Never shown to the customer.</div></div>
@@ -1310,6 +1318,7 @@ function setS(k,v){ const s=co().settings;
   else if(k==='numOptions'){ s.numOptions=parseInt(v); s.spread=linspace(0.3,0.92,s.numOptions); ensureTiers(co(),s.numOptions); }
   else if(['roundTo','financeMonths'].includes(k)) s[k]=parseInt(v)||1;
   else if(k==='featuredPos') s[k]=v;   // 'none' | 'middle' | option number (string)
+  else if(k==='wisetackUrl') s[k]=(v||'').trim();
   else s[k]=parseFloat(v)||0;
   saveState(); jb.options=null; render(); toast('Saved');
 }
