@@ -456,7 +456,7 @@ function newCompany(id,name,over){
   return Object.assign({
     id,name,
     settings:{ laborRate:225, useSliding:true, markupTiers:defaultMarkupTiers(), flatMarkup:35,
-      taxPct:0, roundTo:1, financeMonths:36, showMonthly:true, numOptions:5, spread:linspace(0.3,0.92,5), optionLayout:'stacked', enforceOrder:true, tierGapPct:12, addOnPct:25, spreadCap:4 },
+      taxPct:0, roundTo:1, financeMonths:36, showMonthly:true, numOptions:5, spread:linspace(0.3,0.92,5), optionLayout:'stacked', enforceOrder:true, tierGapPct:12, addOnPct:25, spreadCap:4, featuredPos:'middle' },
     tiers:defaultTiers(),
     book:seedBook()
   }, over||{});
@@ -845,13 +845,22 @@ async function runAnalyze(){
 function doBuild(){ buildOptions(); if(!jb.options){toast('No matched items to build from');return;} render(); setTimeout(()=>{const el=document.getElementById('optsAnchor');if(el)el.scrollIntoView({behavior:'smooth'});},60); }
 function removeIssue(i){ jb.issues.splice(i,1); jb.options=null; render(); }
 
+/* which option gets the "Most Popular" badge: 'none', 'middle' (auto-centers for any count), or a fixed 1-based position */
+function featuredIndex(N){
+  let fp=co().settings.featuredPos; if(fp==null) fp='middle';
+  if(fp==='none') return -1;
+  if(fp==='middle') return Math.floor((N-1)/2);
+  const n=parseInt(fp); if(isNaN(n)) return Math.floor((N-1)/2);
+  return Math.max(0, Math.min(N-1, n-1));
+}
 function renderOptions(){
   const c=co(),s=c.settings;
   enforceTierOrder();
   const layout=s.optionLayout||'stacked';
   const N=jb.options.length;
+  const featIdx=featuredIndex(N);
   let cardArr=jb.options.map((opt,oi)=>{
-    const t=opt.tier; const total=optionTotal(opt); const feat=t.featured;
+    const t=opt.tier; const total=optionTotal(opt); const feat=(oi===featIdx);
     const f=(layout==='stacked'&&N>1)?(0.74+0.26*(oi/(N-1))).toFixed(3):1;
     const hero=t.gold?`linear-gradient(150deg,#2b3138,#1f2429 55%,#a97c1e)`:`linear-gradient(155deg,${shade(t.color,14)},${shade(t.color,-14)})`;
     const btn=t.gold?'background:linear-gradient(160deg,#c8952a,#a97c1e)':`background:${t.color}`;
@@ -1210,6 +1219,7 @@ function renderAdmin(){
     </div>
     <div class="row3">
       <div class="field"><label>Options per job</label><select onchange="setS('numOptions',this.value)">${[2,3,4,5].map(n=>`<option value="${n}" ${s.numOptions==n?'selected':''}>${n} options</option>`).join('')}</select></div>
+      <div class="field"><label>"Most Popular" badge</label><select onchange="setS('featuredPos',this.value)"><option value="none" ${s.featuredPos==='none'?'selected':''}>None</option><option value="middle" ${(s.featuredPos==null||s.featuredPos==='middle')?'selected':''}>Middle option (auto)</option>${Array.from({length:s.numOptions},(_,i)=>`<option value="${i+1}" ${String(s.featuredPos)===String(i+1)?'selected':''}>Option ${i+1}${i===0?' (lowest)':(i===s.numOptions-1?' (highest)':'')}</option>`).join('')}</select><div class="hint">Which option carries the tag. "Middle" auto-centers it whatever your option count.</div></div>
       <div class="field"><label>Show financing / mo</label><select onchange="setS('showMonthly',this.value)"><option value="1" ${s.showMonthly?'selected':''}>Yes</option><option value="0" ${!s.showMonthly?'selected':''}>No</option></select></div>
       <div class="field"><label>Financing months</label><input type="number" value="${s.financeMonths}" onchange="setS('financeMonths',this.value)"></div>
     </div>
@@ -1293,6 +1303,7 @@ function setS(k,v){ const s=co().settings;
   if(k==='showMonthly'||k==='useSliding'||k==='enforceOrder') s[k]=(v==='1'||v===true);
   else if(k==='numOptions'){ s.numOptions=parseInt(v); s.spread=linspace(0.3,0.92,s.numOptions); ensureTiers(co(),s.numOptions); }
   else if(['roundTo','financeMonths'].includes(k)) s[k]=parseInt(v)||1;
+  else if(k==='featuredPos') s[k]=v;   // 'none' | 'middle' | option number (string)
   else s[k]=parseFloat(v)||0;
   saveState(); jb.options=null; render(); toast('Saved');
 }
