@@ -716,25 +716,24 @@ function applyAddOns(){
     o.lines.forEach((l,li)=>{ if(li===mainIdx){l.disc=1;l.addon=false;} else {l.disc=f;l.addon=true;} });
   });
 }
-/* keep the tier ladder ordered AND spaced: each tier stays at least its original
-   dollar gap, or a minimum % above the one below (whichever is larger) */
+/* Keep the tier ladder strictly ascending — WITHOUT ever inflating a real line's price
+   for cosmetic spacing. A tier is only stepped up if it would otherwise land at or below the
+   tier beneath it (a genuine order break); in every normal case the real prices show as-is. */
 function enforceTierOrder(){
   if(!jb.options) return; const s=co().settings; const N=jb.options.length;
   jb.options.forEach(o=>{o.lines.forEach(l=>{l.adj=0;l.adjusted=false;}); o.outOfOrder=false;});
   applyAddOns();
-  const gapPct=(s.tierGapPct!=null?s.tierGapPct:12)/100;
+  const step=s.roundTo||1;
   for(let i=1;i<N;i++){
     const below=optionTotal(jb.options[i-1]);
     const actual=optionTotal(jb.options[i]);
-    const baseGap=Math.max(0,(jb.options[i].baseTotal||0)-(jb.options[i-1].baseTotal||0));
-    const target=below + Math.max(baseGap, roundTo(below*gapPct, s.roundTo||1));
-    if(actual < target){
+    if(actual <= below){                         // act ONLY on a real order break, never for spacing
       if(s.enforceOrder!==false){
-        const delta=target-actual;
+        const delta=(below+step)-actual;
         const lines=jb.options[i].lines; let idx=0,best=-1;
         lines.forEach((l,li)=>{const p=effLine(l); if(p>best){best=p;idx=li;}});
         lines[idx].adj=(lines[idx].adj||0)+delta; lines[idx].adjusted=true;
-      } else if(actual<=below) jb.options[i].outOfOrder=true;
+      } else jb.options[i].outOfOrder=true;
     }
   }
 }
@@ -1216,7 +1215,6 @@ function renderAdmin(){
     </div>
     <div class="row2">
       <div class="field"><label>Keep tiers in price order</label><select onchange="setS('enforceOrder',this.value)"><option value="1" ${s.enforceOrder!==false?'selected':''}>Yes — auto-adjust so each stays above the one below</option><option value="0" ${s.enforceOrder===false?'selected':''}>No — just warn me</option></select><div class="hint">Prevents a lower tier from being priced above a higher one after edits.</div></div>
-      <div class="field"><label>Minimum gap between tiers</label><div class="inline-affix"><input type="number" value="${s.tierGapPct!=null?s.tierGapPct:12}" onchange="setS('tierGapPct',this.value)"><span class="suf">%</span></div><div class="hint">When tiers get nudged, keep at least this much space between them.</div></div>
       <div class="field"><label>Add-on rate — extra tasks</label><div class="inline-affix"><input type="number" value="${s.addOnPct!=null?s.addOnPct:25}" onchange="setS('addOnPct',this.value)"><span class="suf">% off</span></div><div class="hint">On multi-item jobs the biggest task is full price; every cheaper task is discounted this much automatically (you're already onsite). Never shown to the customer.</div></div>
     </div>
   </div>
