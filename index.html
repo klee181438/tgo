@@ -1001,14 +1001,51 @@ function renderReceipt(){
       ${s.showMonthly?`<div class="line"><span class="mini">Financing — as low as</span><span class="mini">${fmt(monthly(total,s.financeMonths,s.financeApr))}/mo · ${s.financeMonths}mo${s.financeApr>0?` · ${s.financeApr}% APR`:''}</span></div>`:''}
       <div class="line total"><span>Total (flat rate)</span><span class="mono">${fmt(total)}</span></div>
       ${(s.showMonthly&&s.wisetackUrl)?`<a href="${esc(s.wisetackUrl)}" target="_blank" rel="noopener" class="btn btn-red btn-block" style="text-decoration:none;margin-top:12px">Prequalify with Wisetack →</a><p class="mini" style="text-align:center;margin:8px 0 0;color:var(--mute)">Estimate. Real terms (0–35.9% APR) from a soft credit check — no score impact.</p>`:''}
+      ${jb.approval?`
+        <div style="margin-top:18px;border:1.5px solid #2e7d5b;background:#f2faf5;border-radius:12px;padding:14px 16px">
+          <div style="display:flex;align-items:center;gap:7px;color:#2e7d5b;font-weight:800;font-size:13px"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#2e7d5b" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> APPROVED &amp; SIGNED</div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:14px;margin-top:10px;flex-wrap:wrap">
+            <div><div style="font-size:14px"><b>${esc(jb.approval.name)}</b></div><div class="mini">${esc(jb.approval.at)}</div></div>
+            ${jb.approval.sig?`<img src="${jb.approval.sig}" alt="signature" style="height:52px;max-width:230px;object-fit:contain">`:''}
+          </div>
+        </div>`
+      :`
+        <div style="margin-top:18px;border-top:1px dashed var(--line);padding-top:16px">
+          <div style="font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--ink);margin-bottom:10px">Approve this option</div>
+          <div class="field" style="margin-bottom:10px"><label>Customer name</label><input id="sigName" placeholder="Full name"></div>
+          <div class="mini" style="margin-bottom:6px">Sign below with your finger or stylus</div>
+          <canvas id="sigPad" width="620" height="180" style="width:100%;height:150px;border:1.5px solid var(--line);border-radius:10px;background:#fff;touch-action:none;cursor:crosshair" onpointerdown="sigStart(event)" onpointermove="sigMove(event)" onpointerup="sigEnd(event)" onpointerleave="sigEnd(event)"></canvas>
+          <div style="display:flex;gap:10px;margin-top:10px">
+            <button class="btn btn-ghost btn-sm" onclick="sigClear()">Clear</button>
+            <button class="btn btn-red btn-block" onclick="approveOption()"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#fff" stroke-width="3" style="vertical-align:-2px;margin-right:4px"><path d="M20 6L9 17l-5-5"/></svg>Approve &amp; Sign</button>
+          </div>
+          <p class="mini" style="text-align:center;margin:8px 0 0;color:var(--mute)">Signing approves this scope and flat price.</p>
+        </div>`}
       <div style="display:flex;gap:10px;margin-top:18px">
-        <button class="btn btn-ghost btn-block" onclick="jb.presented=false;render()">← Edit</button>
+        <button class="btn btn-ghost btn-block" onclick="jb.presented=false;jb.approval=null;resetSig();render()">← Edit</button>
+        ${jb.approval?`<button class="btn btn-ghost btn-block" onclick="window.print()">Print</button>`:''}
         <button class="btn btn-dark btn-block" onclick="newJob()">New Job</button>
       </div>
       <p style="text-align:center;font-size:11.5px;color:var(--mute);margin:14px 0 0">Price valid 30 days · workmanship guaranteed · demo — nothing is sent anywhere.</p>
     </div></div>`;
 }
-function newJob(){ jb={text:'',issues:[],options:null,chosen:null,presented:false,overrides:{}}; render(); window.scrollTo(0,0); }
+/* ---- customer signature / approval on the receipt (touch + mouse) ---- */
+let __sig={drawing:false,lx:0,ly:0,dirty:false};
+function resetSig(){ __sig={drawing:false,lx:0,ly:0,dirty:false}; }
+function sigPos(cv,e){ const r=cv.getBoundingClientRect(); return {x:(e.clientX-r.left)*(cv.width/r.width), y:(e.clientY-r.top)*(cv.height/r.height)}; }
+function sigStart(e){ const cv=document.getElementById('sigPad'); if(!cv)return; __sig.drawing=true; const p=sigPos(cv,e); __sig.lx=p.x; __sig.ly=p.y; e.preventDefault(); }
+function sigMove(e){ if(!__sig.drawing)return; const cv=document.getElementById('sigPad'); if(!cv)return; const ctx=cv.getContext('2d'); const p=sigPos(cv,e); ctx.strokeStyle='#1f2429'; ctx.lineWidth=2.4; ctx.lineJoin='round'; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(__sig.lx,__sig.ly); ctx.lineTo(p.x,p.y); ctx.stroke(); __sig.lx=p.x; __sig.ly=p.y; __sig.dirty=true; e.preventDefault(); }
+function sigEnd(){ __sig.drawing=false; }
+function sigClear(){ const cv=document.getElementById('sigPad'); if(cv) cv.getContext('2d').clearRect(0,0,cv.width,cv.height); __sig.dirty=false; }
+function approveOption(){
+  const cv=document.getElementById('sigPad'); const nm=(document.getElementById('sigName')||{}).value||'';
+  if(!nm.trim()){ toast('Enter the customer name'); return; }
+  if(!__sig.dirty){ toast('Please sign in the box'); return; }
+  let sig=''; try{ sig=cv.toDataURL('image/png'); }catch(e){}
+  jb.approval={name:nm.trim(), sig, at:new Date().toLocaleString()};
+  resetSig(); render(); window.scrollTo(0,0); toast('Approved — thank you!');
+}
+function newJob(){ jb={text:'',issues:[],options:null,chosen:null,presented:false,overrides:{}}; resetSig(); render(); window.scrollTo(0,0); }
 
 /* ================= CUSTOM TASK BUILDER ================= */
 function openCustomTask(prefill, onSave, preGroup){
