@@ -91,6 +91,9 @@ h1,h2,h3,h4{margin:0;line-height:1.2}
 .options.stacked .opt.featured{transform:none;box-shadow:var(--shadow-lg)}
 .options.stacked .opt .hero{width:250px;flex:none;display:flex;flex-direction:column;justify-content:center}
 .options.stacked .opt.featured .tier-name{padding-right:0}
+/* stacked: the badge floats over the LINES panel, so drop the first line clear of it
+   (padding the whole body keeps every line price right-aligned with each other) */
+.options.stacked .opt.featured .opt-body{padding-top:46px}
 .options.stacked .opt .opt-body{flex:1}
 .options.stacked .opt{zoom:var(--f,1)}
 .seg{padding:7px 13px;border-radius:8px;font-size:13px;font-weight:700;color:var(--mute);background:none}
