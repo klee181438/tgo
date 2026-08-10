@@ -650,21 +650,28 @@ function pickIndices(M,N){
   return a;
 }
 function buildOptions(){
-  const c=co(), s=c.settings, N=s.numOptions;
+  const c=co(), s=c.settings, N=Math.max(1, parseInt(s.numOptions)||3);
   ensureTiers(c,N);
   const matched=jb.issues.filter(i=>i.group||i.custom);
-  if(!matched.length){ jb.options=null; return; }
-  const perIssue=matched.map(iss=>{
-    if(iss.custom) return {iss, custom:true};
+  if(!matched.length){ jb.options=null; jb.buildSkipped=[]; return; }
+  const perIssue=[]; const skipped=[];
+  matched.forEach(iss=>{
+    if(iss.custom){ perIssue.push({iss, custom:true}); return; }
     const tasks=candidateTasks(iss.group, iss.phrase);
-    return {iss, tasks, idxs:pickIndices(tasks.length,N), group:iss.group};
+    // A matched group with NO priced tasks in the book (e.g. a group just added, renamed, or deleted)
+    // can't anchor an option — skip it and report it, rather than crashing the whole build.
+    if(!tasks||!tasks.length){ skipped.push(iss.phrase); return; }
+    perIssue.push({iss, tasks, idxs:pickIndices(tasks.length,N), group:iss.group});
   });
+  jb.buildSkipped=skipped;
+  if(!perIssue.length){ jb.options=null; return; }
   jb.options=c.tiers.slice(0,N).map((tier,ti)=>{
     const lines=perIssue.map(pi=>{
       if(pi.custom) return {issue:pi.iss, taskId:pi.iss.custom.id, groupKey:null};
       const idx=pi.idxs[ti];
-      return {issue:pi.iss, taskId:pi.tasks[idx].id, groupKey:pi.group};
-    });
+      const t=pi.tasks[idx]||pi.tasks[pi.tasks.length-1]||pi.tasks[0];
+      return t?{issue:pi.iss, taskId:t.id, groupKey:pi.group}:null;
+    }).filter(Boolean);
     return {tier, lines};
   });
   applyAddOns();
@@ -849,7 +856,15 @@ async function runAnalyze(){
   } else { analyze(); }
   jb.options=null; render();
 }
-function doBuild(){ buildOptions(); if(!jb.options){toast('No matched items to build from');return;} render(); setTimeout(()=>{const el=document.getElementById('optsAnchor');if(el)el.scrollIntoView({behavior:'smooth'});},60); }
+function doBuild(){
+  try{ buildOptions(); }
+  catch(e){ console.error('buildOptions failed', e); toast('Build error: '+String(e&&e.message||e).slice(0,60)); return; }
+  const skipped=(jb.buildSkipped&&jb.buildSkipped.length)?jb.buildSkipped:null;
+  if(!jb.options){ toast(skipped?('No price-book tasks yet for: '+skipped.join(', ')):'No matched items to build from'); return; }
+  render();
+  if(skipped) setTimeout(()=>toast('Skipped — no price-book tasks yet for: '+skipped.join(', ')),140);
+  setTimeout(()=>{const el=document.getElementById('optsAnchor');if(el)el.scrollIntoView({behavior:'smooth'});},60);
+}
 function removeIssue(i){ jb.issues.splice(i,1); jb.options=null; render(); }
 
 /* which option gets the "Most Popular" badge: 'none', 'middle' (auto-centers for any count), or a fixed 1-based position */
