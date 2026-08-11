@@ -194,7 +194,29 @@ h1,h2,h3,h4{margin:0;line-height:1.2}
   .receipt .line{ break-inside:avoid; page-break-inside:avoid; }
   .receipt .r-hero, .receipt .r-body{ box-shadow:none !important; }
   a[href]:after{ content:'' !important; }
+
+  /* --- options proposal: always print as one option per row, whatever the on-screen toggle --- */
+  .print-only{ display:block !important; }
+  .options{ display:block !important; max-width:none !important; margin:0 !important; }
+  .opt{ display:flex !important; flex-direction:row !important; zoom:1 !important; transform:none !important;
+        margin:0 0 11px !important; box-shadow:none !important;
+        break-inside:avoid !important; page-break-inside:avoid !important; }
+  .opt:hover{ transform:none !important; }
+  .opt .hero{ width:33% !important; flex:none !important; display:flex !important;
+              flex-direction:column !important; justify-content:center !important; padding:16px !important; }
+  .opt .opt-body{ flex:1 !important; padding:14px 16px !important; }
+  .opt .lines{ margin-bottom:0 !important; gap:10px !important; }
+  .opt .opt-body>.btn{ display:none !important; }        /* "Choose X" is meaningless on paper */
+  .opt.featured .opt-body{ padding-top:44px !important; } /* keep badge clear of the first price */
+  .opt .price{ font-size:28px !important; margin:8px 0 1px !important; }
 }
+/* customer-facing header that appears ONLY in the exported options PDF */
+.print-only{ display:none; }
+.proposal-head{ text-align:center; margin:0 0 16px; }
+.proposal-head .ph-logo{ height:40px; max-width:190px; object-fit:contain; display:block; margin:0 auto 8px; }
+.proposal-head .ph-co{ font-size:15px; font-weight:900; letter-spacing:.4px; text-transform:uppercase; color:var(--ink); }
+.proposal-head .ph-t{ font-size:25px; font-weight:900; margin-top:2px; }
+.proposal-head .ph-d{ font-size:11.5px; color:var(--mute); margin-top:3px; }
 </style>
 </head>
 <body>
@@ -837,19 +859,19 @@ function renderJB(){
   const hasIssues=jb.issues.length>0;
   const iconColors=['#6b7280','#2f6fb0','#c77b30','#2e7d5b','#8a5cc4','#c8382e'];
   return `
-  <div class="page-head"><h2>What's going on at this job?</h2>
+  <div class="page-head no-print"><h2>What's going on at this job?</h2>
     <p>Type it like you'd say it. Every item gets matched to your price book, then bundled into whole-visit options.</p></div>
 
-  <textarea class="jb-input" id="jbText" placeholder="e.g.  Replace the garbage disposal, the drain under the kitchen sink needs repiping, and the front hose bib is leaking"
+  <textarea class="jb-input no-print" id="jbText" placeholder="e.g.  Replace the garbage disposal, the drain under the kitchen sink needs repiping, and the front hose bib is leaking"
     oninput="jb.text=this.value">${esc(jb.text)}</textarea>
-  <div class="jb-hintrow">
+  <div class="jb-hintrow no-print">
     <span class="aibadge">${aiReady()?'✦ AI on':'✦ Smart match'}</span>
     <button class="ex-chip" onclick="loadExample()">Try the Sally example</button>
     <button class="btn btn-red btn-sm" style="margin-left:auto" onclick="runAnalyze()" ${jb.reading?'disabled':''}>${jb.reading?'✦ Reading…':'Read the job →'}</button>
   </div>
 
   ${hasIssues?`
-  <div class="worksheet">
+  <div class="worksheet no-print">
     <div class="section-title">Detected — ${jb.issues.length} item${jb.issues.length>1?'s':''} · tap to fix a match</div>
     ${jb.issues.map((iss,i)=>{
       const col=iconColors[i%iconColors.length];
@@ -917,7 +939,7 @@ function renderOptions(){
       </div>
       <div class="opt-body">
         <ul class="lines">
-          ${opt.lines.map((l,li)=>({l,li})).sort((a,b)=>effLine(b.l)-effLine(a.l)).map(({l,li})=>{ const tk=taskById(l.taskId); if(!tk)return''; return `<li class="li"><div class="lt"><span class="lname">${esc(tk.name)}${l.addon?' <span class="editflag">add-on</span>':''}${tk.oneOff?' <span class="editflag">edited</span>':''}</span><span class="lprice">${fmt(effLine(l))}</span></div><div class="ldesc">${esc(tk.desc||genDesc(tk))}</div>${l.adjusted?'<div class="ldesc" style="color:#8a6d00">↑ nudged up to keep tiers in order</div>':''}<div class="lact">${l.groupKey?`<span class="lswap" style="color:${t.color}" onclick="swapLine(${oi},${li})">swap ⌄</span>`:''}<span class="lswap" style="color:${t.color}" onclick="editLine(${oi},${li})">edit ✎</span></div></li>`; }).join('')}
+          ${opt.lines.map((l,li)=>({l,li})).sort((a,b)=>effLine(b.l)-effLine(a.l)).map(({l,li})=>{ const tk=taskById(l.taskId); if(!tk)return''; return `<li class="li"><div class="lt"><span class="lname">${esc(tk.name)}${l.addon?' <span class="editflag">add-on</span>':''}${tk.oneOff?' <span class="editflag">edited</span>':''}</span><span class="lprice">${fmt(effLine(l))}</span></div><div class="ldesc">${esc(tk.desc||genDesc(tk))}</div>${l.adjusted?'<div class="ldesc no-print" style="color:#8a6d00">↑ nudged up to keep tiers in order</div>':''}<div class="lact no-print">${l.groupKey?`<span class="lswap" style="color:${t.color}" onclick="swapLine(${oi},${li})">swap ⌄</span>`:''}<span class="lswap" style="color:${t.color}" onclick="editLine(${oi},${li})">edit ✎</span></div></li>`; }).join('')}
         </ul>
         <button class="btn btn-block" style="${btn};color:#fff" onclick="choose(${oi})">Choose ${esc(t.name)}</button>
       </div></div>`;
@@ -925,14 +947,23 @@ function renderOptions(){
   if(layout==='stacked') cardArr=cardArr.reverse(); /* highest price on top, biggest card */
   const cards=cardArr.join('');
   return `<div id="optsAnchor" style="height:1px"></div>
-    <div class="page-head" style="margin:26px 0 12px;display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap">
+    <div class="page-head no-print" style="margin:26px 0 12px;display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap">
       <div><h2>The options</h2><p>${jb.options.length} whole-visit choices — one flat price each. Swap any line to fine-tune.</p></div>
-      <div style="margin-left:auto;display:flex;gap:4px;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:4px">
-        <button class="seg ${layout==='grid'?'on':''}" onclick="setLayout('grid')">Side-by-side</button>
-        <button class="seg ${layout==='stacked'?'on':''}" onclick="setLayout('stacked')">Stacked</button>
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" onclick="savePdf()" title="Save these options as a PDF to text or email">Save PDF</button>
+        <div style="display:flex;gap:4px;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:4px">
+          <button class="seg ${layout==='grid'?'on':''}" onclick="setLayout('grid')">Side-by-side</button>
+          <button class="seg ${layout==='stacked'?'on':''}" onclick="setLayout('stacked')">Stacked</button>
+        </div>
       </div>
     </div>
-    ${jb.options.some(o=>o.outOfOrder)?`<div class="callout" style="margin-bottom:14px">⚠ A tier is priced at or below the one beneath it. Adjust a line, or turn on <b>Keep tiers in price order</b> under Pricing to fix this automatically.</div>`:''}
+    <div class="print-only proposal-head">
+      ${s.logo?`<img src="${s.logo}" class="ph-logo" alt="">`:''}
+      <div class="ph-co">${esc(c.name)}</div>
+      <div class="ph-t">Your Options</div>
+      <div class="ph-d">Prepared ${new Date().toLocaleDateString()} · valid 30 days</div>
+    </div>
+    ${jb.options.some(o=>o.outOfOrder)?`<div class="callout no-print" style="margin-bottom:14px">⚠ A tier is priced at or below the one beneath it. Adjust a line, or turn on <b>Keep tiers in price order</b> under Pricing to fix this automatically.</div>`:''}
     <div class="options ${layout==='stacked'?'stacked':''}">${cards}</div>
     ${(s.showMonthly&&s.wisetackUrl)?`<div style="text-align:center;margin-top:22px">
       <a href="${esc(s.wisetackUrl)}" target="_blank" rel="noopener" class="btn btn-red" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;padding:13px 22px">See if you prequalify — Wisetack →</a>
@@ -1090,9 +1121,11 @@ function savePdf(){
   const safe=v=>String(v||'').replace(/[\\/:*?"<>|]+/g,' ').replace(/\s+/g,' ').trim();
   const d=new Date(), p=n=>String(n).padStart(2,'0');
   const stamp=d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());
-  const who=(jb.approval&&jb.approval.name)?safe(jb.approval.name):'Customer';
+  const signed=!!(jb.presented && jb.approval);
+  const kind=signed?'Agreed Scope':'Options';
+  const who=signed?safe(jb.approval.name):'';
   const prev=document.title;
-  document.title=[safe(c.name)||'Agreed Scope','Agreed Scope',who,stamp].filter(Boolean).join(' - ');
+  document.title=[safe(c.name),kind,who,stamp].filter(Boolean).join(' - ');
   let done=false;
   const restore=()=>{ if(done)return; done=true; document.title=prev; window.removeEventListener('afterprint',restore); };
   window.addEventListener('afterprint',restore);
