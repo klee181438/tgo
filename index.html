@@ -98,7 +98,9 @@ h1,h2,h3,h4{margin:0;line-height:1.2}
 .options.stacked .opt{zoom:var(--f,1)}
 .seg{padding:7px 13px;border-radius:8px;font-size:13px;font-weight:700;color:var(--mute);background:none}
 .seg.on{background:var(--charcoal);color:#fff}
-@media(max-width:640px){ .options.stacked .opt{flex-direction:column} .options.stacked .opt .hero{width:auto} }
+@media(max-width:640px){ .options.stacked .opt{flex-direction:column} .options.stacked .opt .hero{width:auto}
+  /* column layout puts the badge back over the hero, so the body needs no clearance */
+  .options.stacked .opt.featured .opt-body{padding-top:16px} }
 .opt{position:relative;border:2px solid transparent;border-radius:18px;overflow:hidden;display:flex;flex-direction:column;transition:.18s;box-shadow:var(--shadow)}
 .opt:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg)}
 .opt .hero{padding:20px 18px 18px;color:#fff}
@@ -250,6 +252,7 @@ h1,h2,h3,h4{margin:0;line-height:1.2}
   <div class="wrap" id="view"></div>
 </div>
 
+<div id="pub" class="hidden"></div>
 <div id="modalRoot"></div>
 <div id="toast" class="toast"></div>
 
@@ -499,7 +502,7 @@ function newCompany(id,name,over){
   return Object.assign({
     id,name,
     settings:{ laborRate:225, useSliding:true, markupTiers:defaultMarkupTiers(), flatMarkup:35,
-      taxPct:0, roundTo:1, financeMonths:36, showMonthly:true, numOptions:5, spread:linspace(0.3,0.92,5), optionLayout:'stacked', enforceOrder:true, tierGapPct:12, addOnPct:25, spreadCap:4, featuredPos:'middle', financeApr:0, wisetackUrl:'' },
+      taxPct:0, roundTo:1, financeMonths:36, showMonthly:true, numOptions:5, spread:linspace(0.3,0.92,5), optionLayout:'stacked', enforceOrder:true, tierGapPct:12, addOnPct:25, spreadCap:4, featuredPos:'middle', financeApr:0, wisetackUrl:'', shopPhone:'' },
     tiers:defaultTiers(),
     book:seedBook()
   }, over||{});
@@ -950,6 +953,7 @@ function renderOptions(){
     <div class="page-head no-print" style="margin:26px 0 12px;display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap">
       <div><h2>The options</h2><p>${jb.options.length} whole-visit choices — one flat price each. Swap any line to fine-tune.</p></div>
       <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-red btn-sm" onclick="shareCustomerLink()" title="Text the customer a link to these options">Text to customer</button>
         <button class="btn btn-ghost btn-sm" onclick="savePdf()" title="Save these options as a PDF to text or email">Save PDF</button>
         <div style="display:flex;gap:4px;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:4px">
           <button class="seg ${layout==='grid'?'on':''}" onclick="setLayout('grid')">Side-by-side</button>
@@ -1359,6 +1363,7 @@ function renderAdmin(){
       <div class="field"><label>Financing term (months)</label><input type="number" value="${s.financeMonths}" onchange="setS('financeMonths',this.value)"></div>
       <div class="field"><label>Est. APR for payment display</label><div class="inline-affix"><input type="number" step="0.1" value="${s.financeApr!=null?s.financeApr:0}" onchange="setS('financeApr',this.value)"><span class="suf">%</span></div><div class="hint">Used only to estimate the "as low as" monthly figure. Set it to the representative rate you advertise (0 = show as 0% promo). The customer's real rate comes from Wisetack prequal.</div></div>
     </div>
+    <div class="field"><label>Shop mobile for approvals</label><input value="${esc(s.shopPhone||'')}" placeholder="e.g. 555-123-4567" onchange="setS('shopPhone',this.value)"><div class="hint">Optional. When a customer approves from a texted link, their "Send approval by text" button pre-addresses the message to this number.</div></div>
     <div class="field"><label>Wisetack prequalify link</label><input value="${esc(s.wisetackUrl||'')}" placeholder="https://wisetack.us/#/..../prequalify" onchange="setS('wisetackUrl',this.value)"><div class="hint">Your customer-facing Wisetack prequal URL. Adds a "Prequalify with Wisetack" button to the options and receipt so customers get their real payment (soft credit check). Each shop uses its own.</div></div>
     <div class="row2">
       <div class="field"><label>Keep tiers in price order</label><select onchange="setS('enforceOrder',this.value)"><option value="1" ${s.enforceOrder!==false?'selected':''}>Yes — auto-adjust so each stays above the one below</option><option value="0" ${s.enforceOrder===false?'selected':''}>No — just warn me</option></select><div class="hint">Prevents a lower tier from being priced above a higher one after edits.</div></div>
@@ -1441,7 +1446,7 @@ function setS(k,v){ const s=co().settings;
   else if(k==='numOptions'){ s.numOptions=parseInt(v); s.spread=linspace(0.3,0.92,s.numOptions); ensureTiers(co(),s.numOptions); }
   else if(['roundTo','financeMonths'].includes(k)) s[k]=parseInt(v)||1;
   else if(k==='featuredPos') s[k]=v;   // 'none' | 'middle' | option number (string)
-  else if(k==='wisetackUrl') s[k]=(v||'').trim();
+  else if(k==='wisetackUrl'||k==='shopPhone') s[k]=(v||'').trim();
   else s[k]=parseFloat(v)||0;
   saveState(); jb.options=null; render(); toast('Saved');
 }
@@ -1472,7 +1477,228 @@ function doAddCompany(){ const name=document.getElementById('ncName').value.trim
 function deleteCompany(id){ if(DB.companies.length<=1){toast('Keep at least one');return;} openModal('Remove company?', `<p style="color:var(--mute);margin:0 0 16px">Deletes the company and its book.</p><div style="display:flex;gap:10px"><button class="btn btn-ghost btn-block" onclick="closeModal()">Cancel</button><button class="btn btn-red btn-block" onclick="doDelCompany('${id}')">Delete</button></div>`); }
 function doDelCompany(id){ DB.companies=DB.companies.filter(c=>c.id!==id); if(DB.activeCompanyId===id)DB.activeCompanyId=DB.companies[0].id; saveState(); sbDelete(id); closeModal(); render(); }
 
-window.addEventListener('load',()=>{ boot(); const g=document.getElementById('gateEmail'); if(g)g.focus(); });
+/* ==================================================================================
+   SHAREABLE CUSTOMER LINK  (no backend — the whole quote travels inside the URL)
+   ?q=<payload>  → public, read-only options page the customer opens on their phone
+   ?a=<payload>  → the approval coming BACK: chosen option + name + drawn signature
+   Payloads are JSON → deflate-raw (when supported) → base64url, so links stay as
+   short as possible. Prefix "1" = raw, "2" = deflated.
+   ================================================================================== */
+function _b64url(bytes){ let b=''; bytes.forEach(x=>b+=String.fromCharCode(x)); return btoa(b).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+function _unb64url(s){ s=s.replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4)s+='='; const bin=atob(s); const out=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)out[i]=bin.charCodeAt(i); return out; }
+async function packPayload(obj){
+  const json=JSON.stringify(obj); const raw=new TextEncoder().encode(json);
+  if(typeof CompressionStream!=='undefined'){
+    try{ const cs=new CompressionStream('deflate-raw');
+      const ab=await new Response(new Blob([raw]).stream().pipeThrough(cs)).arrayBuffer();
+      return '2'+_b64url(new Uint8Array(ab)); }catch(e){}
+  }
+  return '1'+_b64url(raw);
+}
+async function unpackPayload(str){
+  const mode=str.charAt(0), body=_unb64url(str.slice(1));
+  if(mode==='2'){ const ds=new DecompressionStream('deflate-raw');
+    const ab=await new Response(new Blob([body]).stream().pipeThrough(ds)).arrayBuffer();
+    return JSON.parse(new TextDecoder().decode(ab)); }
+  return JSON.parse(new TextDecoder().decode(body));
+}
+/* everything the customer's phone needs to draw the options — no logo (too big for a URL), no price book */
+function customerPayload(){
+  const c=co(), s=c.settings, N=jb.options.length;
+  return { v:1, co:c.name, ph:(s.shopPhone||''), feat:featuredIndex(N),
+    fin: s.showMonthly?{m:s.financeMonths, a:s.financeApr||0, w:s.wisetackUrl||''}:null,
+    o: jb.options.map(o=>({ n:o.tier.name, g:o.tier.tag, c:o.tier.color, gold:!!o.tier.gold,
+      t:Math.round(optionTotal(o)),
+      l:o.lines.slice().sort((a,b)=>effLine(b)-effLine(a)).map(l=>{ const tk=taskById(l.taskId);
+          return tk?{n:tk.name, d:tk.desc||genDesc(tk), p:Math.round(effLine(l)), a:!!l.addon}:null; }).filter(Boolean) }))
+  };
+}
+function pubMonthly(t,f){ if(!f) return ''; const m=f.m||1, r=(f.a||0)/100/12;
+  const v=(r<=0)?Math.ceil(t/m):Math.ceil(t*r/(1-Math.pow(1+r,-m)));
+  return 'as low as '+fmt(v)+'/mo'+(f.w?' · Wisetack':''); }
+
+/* ---- tech side: build + share the link ---- */
+async function shareCustomerLink(){
+  if(!jb.options){ toast('Build the options first'); return; }
+  let url;
+  try{ url=location.origin+location.pathname+'?q='+await packPayload(customerPayload()); }
+  catch(e){ toast('Could not build the link'); return; }
+  const c=co();
+  const msg='Here are your options from '+c.name;
+  if(url.length>7500){ toast('Too many options for one link — try 3 options'); return; }
+  if(navigator.share){ try{ await navigator.share({title:msg, text:msg, url}); return; }catch(e){ if(e&&e.name==='AbortError') return; } }
+  linkFallback(url, msg);
+}
+function linkFallback(url,msg){
+  const sms='sms:?&body='+encodeURIComponent(msg+' '+url);
+  openModal('Send to customer', `
+    <p style="color:var(--mute);margin:0 0 12px;font-size:13.5px">Text or email this link — it opens the options on their phone, and they can approve and sign right there.</p>
+    <textarea id="shareUrl" readonly style="width:100%;height:96px;font-size:11.5px;font-family:ui-monospace,Menlo,monospace;border:1.5px solid var(--line);border-radius:10px;padding:10px;resize:none">${esc(url)}</textarea>
+    <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+      <button class="btn btn-red btn-block" onclick="copyShareUrl()">Copy link</button>
+      <a class="btn btn-ghost btn-block" style="text-decoration:none;text-align:center" href="${esc(sms)}">Open in Messages</a>
+    </div>`);
+}
+function copyShareUrl(){ const el=document.getElementById('shareUrl'); if(!el)return;
+  el.select(); el.setSelectionRange(0,99999);
+  const done=()=>{ closeModal(); toast('Link copied — paste it into a text'); };
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(el.value).then(done,()=>{ try{document.execCommand('copy');done();}catch(e){ toast('Press and hold to copy'); } }); }
+  else { try{ document.execCommand('copy'); done(); }catch(e){ toast('Press and hold to copy'); } }
+}
+
+/* ---- customer side: public read-only options + remote approval ---- */
+let PUB=null, PUBSIG={drawing:false,lx:0,ly:0,strokes:[],cur:null};
+function pubShow(html){ const p=document.getElementById('pub'); p.className='wrap'; p.innerHTML=html;
+  document.getElementById('gate').classList.add('hidden'); document.getElementById('app').classList.add('hidden'); window.scrollTo(0,0); }
+function pubHead(P,sub){ return `<div class="proposal-head" style="display:block;margin:22px 0 18px">
+    <div class="ph-co">${esc(P.co)}</div><div class="ph-t">${esc(sub||'Your Options')}</div>
+    <div class="ph-d">Prepared ${new Date().toLocaleDateString()} · valid 30 days</div></div>`; }
+function renderPublicOptions(){
+  const P=PUB, N=P.o.length;
+  const cards=P.o.map((o,i)=>{
+    const feat=(i===P.feat);
+    const hero=o.gold?`linear-gradient(150deg,#2b3138,#1f2429 55%,#a97c1e)`:`linear-gradient(155deg,${shade(o.c,14)},${shade(o.c,-14)})`;
+    const btn=o.gold?'background:linear-gradient(160deg,#c8952a,#a97c1e)':`background:${o.c}`;
+    return `<div class="opt ${feat?'featured':''}" style="border-color:${o.c};--f:1">
+      ${feat?'<span class="badge">Most Popular</span>':''}
+      <div class="hero" style="background:${hero}">
+        <div class="tier-name">${esc(o.n)}</div><div class="tier-tag">${esc(o.g)}</div>
+        <div class="price">${fmt(o.t)}</div>
+        <div class="price-sub">${P.fin?esc(pubMonthly(o.t,P.fin)):'flat rate — all in'}</div></div>
+      <div class="opt-body"><ul class="lines">
+        ${o.l.map(l=>`<li class="li"><div class="lt"><span class="lname">${esc(l.n)}${l.a?' <span class="editflag">add-on</span>':''}</span><span class="lprice">${fmt(l.p)}</span></div><div class="ldesc">${esc(l.d)}</div></li>`).join('')}
+      </ul>
+      <button class="btn btn-block" style="${btn};color:#fff" onclick="pubChoose(${i})">Choose ${esc(o.n)}</button>
+      </div></div>`;
+  }).reverse().join('');
+  return pubHead(P)+`<div class="options stacked">${cards}</div>
+    ${(P.fin&&P.fin.w)?`<div style="text-align:center;margin-top:22px">
+      <a href="${esc(P.fin.w)}" target="_blank" rel="noopener" class="btn btn-red" style="display:inline-flex;text-decoration:none;padding:13px 22px">See if you prequalify — Wisetack →</a>
+      <p style="color:var(--mute);font-size:11.5px;max-width:560px;margin:10px auto 0;line-height:1.5">Monthly amounts are estimates. Financing through Wisetack — actual terms (0–35.9% APR) are based on your credit and the amount. Checking your rate is a soft pull and won't affect your credit score.</p></div>`:''}
+    <p style="text-align:center;color:var(--mute);font-size:12.5px;margin:20px 0 40px">Each option is one guaranteed price · ${esc(P.co)} · licensed &amp; insured</p>`;
+}
+function pubChoose(i){ PUB.chosen=i; PUBSIG={drawing:false,lx:0,ly:0,strokes:[],cur:null}; pubShow(renderPublicApprove()); }
+function renderPublicApprove(){
+  const P=PUB, o=P.o[P.chosen];
+  return pubHead(P,'Approve Your Option')+`
+  <div class="receipt"><div class="r-hero" style="background:linear-gradient(120deg,${o.c},${shade(o.c,-16)})">
+      <div class="rt">${esc(P.co)}</div><div class="rn">${esc(o.n)}</div><div class="rp">${fmt(o.t)}</div>
+      <div style="font-size:12px;opacity:.85;margin-top:4px">${o.l.length} item${o.l.length>1?'s':''} · one flat price</div></div>
+    <div class="r-body">
+      ${o.l.map(l=>`<div class="line"><span><b>${esc(l.n)}</b>${l.a?' <span class="editflag">add-on</span>':''}<div class="mini" style="margin-top:2px">${esc(l.d)}</div></span><span class="mono">${fmt(l.p)}</span></div>`).join('')}
+      <div class="line total"><span>Total (flat rate)</span><span class="mono">${fmt(o.t)}</span></div>
+      <div style="margin-top:18px;border-top:1px dashed var(--line);padding-top:16px">
+        <div style="font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Approve this option</div>
+        <div class="field" style="margin-bottom:10px"><label>Your full name</label><input id="pubName" placeholder="Full name"></div>
+        <div class="mini" style="margin-bottom:6px">Sign below with your finger</div>
+        <canvas id="pubPad" width="620" height="180" style="width:100%;height:150px;border:1.5px solid var(--line);border-radius:10px;background:#fff;touch-action:none"
+          onpointerdown="pubSigStart(event)" onpointermove="pubSigMove(event)" onpointerup="pubSigEnd(event)" onpointerleave="pubSigEnd(event)"></canvas>
+        <div style="display:flex;gap:10px;margin-top:10px">
+          <button class="btn btn-ghost btn-sm" onclick="pubSigClear()">Clear</button>
+          <button class="btn btn-red btn-block" onclick="pubApprove()">Approve &amp; Sign</button></div>
+        <p class="mini" style="text-align:center;margin:8px 0 0;color:var(--mute)">Signing approves this scope and flat price.</p>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:16px"><button class="btn btn-ghost btn-block" onclick="pubShow(renderPublicOptions())">← See all options</button></div>
+    </div></div><div style="height:40px"></div>`;
+}
+function pubPos(cv,e){ const r=cv.getBoundingClientRect(); return {x:Math.round((e.clientX-r.left)*(cv.width/r.width)), y:Math.round((e.clientY-r.top)*(cv.height/r.height))}; }
+function pubSigStart(e){ const cv=document.getElementById('pubPad'); if(!cv)return; const p=pubPos(cv,e);
+  PUBSIG.drawing=true; PUBSIG.lx=p.x; PUBSIG.ly=p.y; PUBSIG.cur=[p.x,p.y]; e.preventDefault(); }
+function pubSigMove(e){ if(!PUBSIG.drawing)return; const cv=document.getElementById('pubPad'); if(!cv)return;
+  const ctx=cv.getContext('2d'), p=pubPos(cv,e);
+  ctx.strokeStyle='#1f2429'; ctx.lineWidth=2.4; ctx.lineJoin='round'; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(PUBSIG.lx,PUBSIG.ly); ctx.lineTo(p.x,p.y); ctx.stroke();
+  PUBSIG.lx=p.x; PUBSIG.ly=p.y; if(PUBSIG.cur) PUBSIG.cur.push(p.x,p.y); e.preventDefault(); }
+function pubSigEnd(){ if(PUBSIG.drawing&&PUBSIG.cur&&PUBSIG.cur.length>2) PUBSIG.strokes.push(PUBSIG.cur);
+  PUBSIG.drawing=false; PUBSIG.cur=null; }
+function pubSigClear(){ const cv=document.getElementById('pubPad'); if(cv) cv.getContext('2d').clearRect(0,0,cv.width,cv.height);
+  PUBSIG={drawing:false,lx:0,ly:0,strokes:[],cur:null}; }
+/* draw signature strokes back onto a canvas (used when the shop opens the returned link) */
+function drawStrokes(cv,strokes){ if(!cv||!strokes)return; const ctx=cv.getContext('2d');
+  ctx.clearRect(0,0,cv.width,cv.height); ctx.strokeStyle='#1f2429'; ctx.lineWidth=2.4; ctx.lineJoin='round'; ctx.lineCap='round';
+  strokes.forEach(s=>{ ctx.beginPath(); ctx.moveTo(s[0],s[1]); for(let i=2;i<s.length;i+=2) ctx.lineTo(s[i],s[i+1]); ctx.stroke(); }); }
+async function pubApprove(){
+  const nm=((document.getElementById('pubName')||{}).value||'').trim();
+  if(!nm){ toast('Please enter your name'); return; }
+  if(!PUBSIG.strokes.length){ toast('Please sign in the box'); return; }
+  const P=PUB, o=P.o[P.chosen];
+  const back={v:1, co:P.co, n:o.n, t:o.t, l:o.l, nm, at:new Date().toLocaleString(), sg:PUBSIG.strokes};
+  let url='';
+  try{ url=location.origin+location.pathname+'?a='+await packPayload(back); }catch(e){}
+  PUB.done={nm, at:back.at, url};
+  pubShow(renderPublicDone());
+}
+function renderPublicDone(){
+  const P=PUB, o=P.o[P.chosen], d=P.done;
+  const msg='I approve the "'+o.n+'" option — '+fmt(o.t)+' — '+d.nm;
+  const sms=(P.ph?('sms:'+P.ph.replace(/[^\d+]/g,'')):'sms:')+'?&body='+encodeURIComponent(msg+(d.url?' '+d.url:''));
+  return pubHead(P,'Approved — Thank You')+`
+  <div class="receipt"><div class="r-body" style="border-radius:16px;border-top:1px solid var(--line)">
+    <div style="text-align:center;padding:6px 0 14px">
+      <div style="display:inline-flex;align-items:center;gap:8px;color:#2e7d5b;font-weight:900;font-size:15px">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#2e7d5b" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> APPROVED &amp; SIGNED</div>
+      <div style="margin-top:8px;font-size:15px"><b>${esc(o.n)}</b> · ${fmt(o.t)}</div>
+      <div class="mini">${esc(d.nm)} · ${esc(d.at)}</div></div>
+    <div class="callout" style="margin:0 0 14px"><b>One last step</b> — send this back to ${esc(P.co)} so they have your signed approval on file.</div>
+    <a class="btn btn-red btn-block" style="text-decoration:none;text-align:center" href="${esc(sms)}">Send approval by text</a>
+    ${d.url?`<button class="btn btn-ghost btn-block" style="margin-top:10px" onclick="pubShareBack()">Other ways to send</button>`:''}
+    <p class="mini" style="text-align:center;margin:12px 0 0;color:var(--mute)">${esc(P.co)} will confirm and schedule with you.</p>
+  </div></div><div style="height:40px"></div>`;
+}
+async function pubShareBack(){
+  const P=PUB, o=P.o[P.chosen], d=P.done;
+  const msg='I approve the "'+o.n+'" option — '+fmt(o.t)+' — '+d.nm;
+  if(navigator.share){ try{ await navigator.share({title:'Approval for '+P.co, text:msg, url:d.url}); return; }catch(e){ if(e&&e.name==='AbortError') return; } }
+  linkFallback(d.url, msg);
+}
+/* shop opens the returned ?a= link: show the signed record, printable to PDF */
+function renderReturnedApproval(A){
+  return `<div class="proposal-head" style="display:block;margin:22px 0 18px">
+      <div class="ph-co">${esc(A.co)}</div><div class="ph-t">Signed Approval</div>
+      <div class="ph-d">Signed remotely by the customer</div></div>
+    <div class="receipt"><div class="r-hero" style="background:linear-gradient(120deg,#2e7d5b,#24614699)">
+      <div class="rt">${esc(A.co)} · Agreed Scope</div><div class="rn">${esc(A.n)}</div><div class="rp">${fmt(A.t)}</div></div>
+      <div class="r-body">
+        ${(A.l||[]).map(l=>`<div class="line"><span><b>${esc(l.n)}</b>${l.a?' <span class="editflag">add-on</span>':''}<div class="mini" style="margin-top:2px">${esc(l.d)}</div></span><span class="mono">${fmt(l.p)}</span></div>`).join('')}
+        <div class="line total"><span>Total (flat rate)</span><span class="mono">${fmt(A.t)}</span></div>
+        <div style="margin-top:18px;border:1.5px solid #2e7d5b;background:#f2faf5;border-radius:12px;padding:14px 16px">
+          <div style="display:flex;align-items:center;gap:7px;color:#2e7d5b;font-weight:800;font-size:13px"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#2e7d5b" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> APPROVED &amp; SIGNED</div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:14px;margin-top:10px;flex-wrap:wrap">
+            <div><div style="font-size:14px"><b>${esc(A.nm)}</b></div><div class="mini">${esc(A.at)}</div></div>
+            <canvas id="retSig" width="620" height="180" style="height:52px;max-width:230px"></canvas></div></div>
+        <div class="no-print" style="display:flex;gap:10px;margin-top:18px">
+          <button class="btn btn-red btn-block" onclick="savePdf()">Save PDF</button>
+          <a class="btn btn-dark btn-block" style="text-decoration:none;text-align:center" href="${esc(location.origin+location.pathname)}">Open the app</a></div>
+        <p style="text-align:center;font-size:11.5px;color:var(--mute);margin:14px 0 0">Price valid 30 days · workmanship guaranteed.</p>
+      </div></div><div style="height:40px"></div>`;
+}
+/* Route the page BEFORE auth: a customer opening ?q= or ?a= must never hit the sign-in gate. */
+async function routePublic(){
+  let p; try{ p=new URLSearchParams(location.search); }catch(e){ return false; }
+  const q=p.get('q'), a=p.get('a');
+  if(!q&&!a) return false;
+  try{
+    if(q){ PUB=await unpackPayload(q); PUB.chosen=null;
+      document.title=(PUB.co||'Your Options')+' — Your Options';
+      pubShow(renderPublicOptions()); return true; }
+    const A=await unpackPayload(a);
+    document.title=(A.co||'Signed')+' - Agreed Scope - '+(A.nm||'')+' ';
+    pubShow(renderReturnedApproval(A));
+    setTimeout(()=>drawStrokes(document.getElementById('retSig'), A.sg),40);
+    return true;
+  }catch(e){
+    pubShow(`<div class="card card-pad" style="max-width:520px;margin:60px auto;text-align:center">
+      <h2 style="margin:0 0 8px">This link didn't open</h2>
+      <p style="color:var(--mute);font-size:14px;margin:0 0 16px">It may have been cut short by the messaging app. Ask for the link again, or have them resend it.</p>
+      <a class="btn btn-red" style="text-decoration:none" href="${location.origin+location.pathname}">Go to sign in</a></div>`);
+    return true;
+  }
+}
+
+window.addEventListener('load',async()=>{
+  if(await routePublic()) return;                 // customer link — skip auth entirely
+  boot(); const g=document.getElementById('gateEmail'); if(g)g.focus();
+});
 </script>
 </body>
 </html>
