@@ -502,7 +502,7 @@ function newCompany(id,name,over){
   return Object.assign({
     id,name,
     settings:{ laborRate:225, useSliding:true, markupTiers:defaultMarkupTiers(), flatMarkup:35,
-      taxPct:0, roundTo:1, financeMonths:36, showMonthly:true, numOptions:5, spread:linspace(0.3,0.92,5), optionLayout:'stacked', enforceOrder:true, tierGapPct:12, addOnPct:25, spreadCap:4, featuredPos:'middle', financeApr:0, wisetackUrl:'', shopPhone:'' },
+      taxPct:0, roundTo:1, financeMonths:36, showMonthly:true, numOptions:5, spread:linspace(0.3,0.92,5), optionLayout:'stacked', enforceOrder:true, tierGapPct:12, addOnPct:25, spreadCap:4, featuredPos:'middle', financeApr:0, wisetackUrl:'', shopPhone:'', linkBase:'' },
     tiers:defaultTiers(),
     book:seedBook()
   }, over||{});
@@ -834,9 +834,9 @@ async function boot(){
 }
 function enterApp(){ document.getElementById('gate').classList.add('hidden'); document.getElementById('app').classList.remove('hidden'); render(); startSync(); }
 async function logout(){ try{ await sb.auth.signOut(); }catch(e){} try{localStorage.removeItem('tg_me');}catch(e){} ROLE=null; ME={uid:null,role:null,tenantId:null,email:null}; document.getElementById('app').classList.add('hidden'); document.getElementById('gate').classList.remove('hidden'); const p=document.getElementById('gatePass'); if(p)p.value=''; }
-const ICO={bolt:'<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L4.5 13.5H11l-1 8.5L19.5 10H13z"/></svg>',book:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M19 3v18"/></svg>',gear:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 0 1-4 0v-.1A1.6 1.6 0 0 0 7 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 3.5 14H3a2 2 0 0 1 0-4h.1A1.6 1.6 0 0 0 4.6 7a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 10 3.5V3a2 2 0 0 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.7H21a2 2 0 0 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>',build:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14"/></svg>',out:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>',plus:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>',check:'<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="#fff" stroke-width="3.5"><path d="M20 6L9 17l-5-5"/></svg>'};
+const ICO={bolt:'<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L4.5 13.5H11l-1 8.5L19.5 10H13z"/></svg>',book:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M19 3v18"/></svg>',gear:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 0 1-4 0v-.1A1.6 1.6 0 0 0 7 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 3.5 14H3a2 2 0 0 1 0-4h.1A1.6 1.6 0 0 0 4.6 7a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 10 3.5V3a2 2 0 0 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.7H21a2 2 0 0 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>',build:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14"/></svg>',out:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>',send:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>',plus:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>',check:'<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="#fff" stroke-width="3.5"><path d="M20 6L9 17l-5-5"/></svg>'};
 function renderNav(){
-  const tabs=[['jobbuilder','Job Builder',ICO.bolt],['book','Price Book',ICO.book]];
+  const tabs=[['jobbuilder','Job Builder',ICO.bolt],['sent','Sent',ICO.send],['book','Price Book',ICO.book]];
   if(ROLE==='master'||ROLE==='owner') tabs.push(['admin','Pricing',ICO.gear]);
   if(ROLE==='master') tabs.push(['master','Master',ICO.build]);
   document.getElementById('topnav').innerHTML=tabs.map(([id,l,ic])=>`<button class="${TAB===id?'active':''}" onclick="go('${id}')">${ic}<span>${l}</span></button>`).join('')+`<button onclick="logout()" title="Sign out">${ICO.out}</button>`;
@@ -848,6 +848,7 @@ function renderNav(){
 function go(t){ TAB=t; render(); window.scrollTo(0,0); }
 function render(){ const v=document.getElementById('view');
   if(TAB==='jobbuilder')v.innerHTML=renderJB();
+  else if(TAB==='sent')v.innerHTML=renderSent();
   else if(TAB==='book')v.innerHTML=renderBook();
   else if(TAB==='admin')v.innerHTML=renderAdmin();
   else if(TAB==='master')v.innerHTML=renderMaster();
@@ -1363,6 +1364,7 @@ function renderAdmin(){
       <div class="field"><label>Financing term (months)</label><input type="number" value="${s.financeMonths}" onchange="setS('financeMonths',this.value)"></div>
       <div class="field"><label>Est. APR for payment display</label><div class="inline-affix"><input type="number" step="0.1" value="${s.financeApr!=null?s.financeApr:0}" onchange="setS('financeApr',this.value)"><span class="suf">%</span></div><div class="hint">Used only to estimate the "as low as" monthly figure. Set it to the representative rate you advertise (0 = show as 0% promo). The customer's real rate comes from Wisetack prequal.</div></div>
     </div>
+    <div class="field"><label>Customer link domain</label><input value="${esc(s.linkBase||'')}" placeholder="quote.calltruegrit.com" onchange="setS('linkBase',this.value)"><div class="hint">Optional. Customer links are built on this address instead of the github.io one. Only set it AFTER the domain's DNS is pointed at the app, or links will go nowhere.</div></div>
     <div class="field"><label>Shop mobile for approvals</label><input value="${esc(s.shopPhone||'')}" placeholder="e.g. 555-123-4567" onchange="setS('shopPhone',this.value)"><div class="hint">Optional. When a customer approves from a texted link, their "Send approval by text" button pre-addresses the message to this number.</div></div>
     <div class="field"><label>Wisetack prequalify link</label><input value="${esc(s.wisetackUrl||'')}" placeholder="https://wisetack.us/#/..../prequalify" onchange="setS('wisetackUrl',this.value)"><div class="hint">Your customer-facing Wisetack prequal URL. Adds a "Prequalify with Wisetack" button to the options and receipt so customers get their real payment (soft credit check). Each shop uses its own.</div></div>
     <div class="row2">
@@ -1447,6 +1449,7 @@ function setS(k,v){ const s=co().settings;
   else if(['roundTo','financeMonths'].includes(k)) s[k]=parseInt(v)||1;
   else if(k==='featuredPos') s[k]=v;   // 'none' | 'middle' | option number (string)
   else if(k==='wisetackUrl'||k==='shopPhone') s[k]=(v||'').trim();
+  else if(k==='linkBase') s[k]=(v||'').trim().replace(/^https?:\/\//i,'').replace(/\/+$/,'');
   else s[k]=parseFloat(v)||0;
   saveState(); jb.options=null; render(); toast('Saved');
 }
@@ -1502,10 +1505,12 @@ async function unpackPayload(str){
     return JSON.parse(new TextDecoder().decode(ab)); }
   return JSON.parse(new TextDecoder().decode(body));
 }
-/* everything the customer's phone needs to draw the options — no logo (too big for a URL), no price book */
-function customerPayload(){
+/* everything the customer's phone needs to draw the options.
+   withLogo: only when the quote is STORED (short link) — a logo never fits in a URL. */
+function customerPayload(withLogo){
   const c=co(), s=c.settings, N=jb.options.length;
   return { v:1, co:c.name, ph:(s.shopPhone||''), feat:featuredIndex(N),
+    logo:(withLogo&&s.logo)?s.logo:'',
     fin: s.showMonthly?{m:s.financeMonths, a:s.financeApr||0, w:s.wisetackUrl||''}:null,
     o: jb.options.map(o=>({ n:o.tier.name, g:o.tier.tag, c:o.tier.color, gold:!!o.tier.gold,
       t:Math.round(optionTotal(o)),
@@ -1517,15 +1522,36 @@ function pubMonthly(t,f){ if(!f) return ''; const m=f.m||1, r=(f.a||0)/100/12;
   const v=(r<=0)?Math.ceil(t/m):Math.ceil(t*r/(1-Math.pow(1+r,-m)));
   return 'as low as '+fmt(v)+'/mo'+(f.w?' · Wisetack':''); }
 
-/* ---- tech side: build + share the link ---- */
+/* Base address for customer links — set "Customer link domain" in Pricing to your own
+   domain (e.g. quote.calltruegrit.com) so customers never see a github.io address. */
+function linkBase(){
+  const b=(co().settings.linkBase||'').trim().replace(/\/+$/,'');
+  if(!b) return location.origin+location.pathname;
+  return (/^https?:\/\//i.test(b)?b:'https://'+b)+'/';
+}
+function shortCode(){ const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789'; let s='';   // no look-alike chars
+  const r=new Uint8Array(7); (crypto.getRandomValues?crypto.getRandomValues(r):r.forEach((_,i)=>r[i]=Math.floor(Math.random()*256)));
+  for(let i=0;i<7;i++) s+=A[r[i]%A.length]; return s; }
+
+/* ---- tech side: build + share the link ----
+   Preferred path stores the quote (short link + your logo + approvals come back on their own).
+   If that isn't set up yet, it falls back to the self-contained long link so nothing breaks. */
 async function shareCustomerLink(){
   if(!jb.options){ toast('Build the options first'); return; }
-  let url;
-  try{ url=location.origin+location.pathname+'?q='+await packPayload(customerPayload()); }
-  catch(e){ toast('Could not build the link'); return; }
-  const c=co();
-  const msg='Here are your options from '+c.name;
-  if(url.length>7500){ toast('Too many options for one link — try 3 options'); return; }
+  const c=co(); const msg='Here are your options from '+c.name;
+  let url=null;
+  if(authed()){
+    try{
+      const code=shortCode();
+      const {error}=await sb.rpc('create_quote',{q_id:code, q_payload:customerPayload(true), q_tenant:(ME&&ME.tenantId)||null});
+      if(!error) url=linkBase()+'?j='+code;
+    }catch(e){}
+  }
+  if(!url){                                   // no backend yet — self-contained link
+    try{ url=linkBase()+'?q='+await packPayload(customerPayload(false)); }
+    catch(e){ toast('Could not build the link'); return; }
+    if(url.length>7500){ toast('Too many options for one link — try 3 options'); return; }
+  }
   if(navigator.share){ try{ await navigator.share({title:msg, text:msg, url}); return; }catch(e){ if(e&&e.name==='AbortError') return; } }
   linkFallback(url, msg);
 }
@@ -1546,11 +1572,58 @@ function copyShareUrl(){ const el=document.getElementById('shareUrl'); if(!el)re
   else { try{ document.execCommand('copy'); done(); }catch(e){ toast('Press and hold to copy'); } }
 }
 
+/* ---- "Sent" tab: quotes you've texted out, and which ones came back signed ---- */
+let SENT={loading:false, rows:null, err:null};
+async function loadSent(force){
+  if(SENT.loading) return; if(SENT.rows && !force) return;
+  SENT.loading=true; SENT.err=null; if(TAB==='sent') render();
+  try{
+    const {data,error}=await sb.rpc('list_quotes',{q_tenant:(ME&&ME.tenantId)||null, q_limit:40});
+    if(error) throw error;
+    SENT.rows=data||[];
+  }catch(e){ SENT.err=(e&&e.message)||'Could not load'; SENT.rows=[]; }
+  SENT.loading=false; if(TAB==='sent') render();
+}
+function openSentQuote(id){
+  const r=(SENT.rows||[]).find(x=>x.id===id); if(!r) return;
+  if(r.approval){ PUB=r.payload||{}; pubShow(renderReturnedApproval(r.approval));
+    setTimeout(()=>drawStrokes(document.getElementById('retSig'), r.approval.sg),40); return; }
+  const url=linkBase()+'?j='+id;
+  linkFallback(url, 'Here are your options from '+co().name);
+}
+function renderSent(){
+  if(SENT.rows===null && !SENT.loading) loadSent();
+  const rows=SENT.rows||[];
+  const body = SENT.loading ? `<p class="mini" style="padding:6px 0">Loading…</p>`
+    : SENT.err ? `<div class="callout">Couldn't load your sent quotes.<div class="mini" style="margin-top:6px">${esc(SENT.err)}</div><div class="mini" style="margin-top:6px">If you haven't run the quote-links setup in Supabase yet, that's expected — links still work, they're just the longer self-contained kind.</div></div>`
+    : !rows.length ? `<div class="callout">Nothing sent yet. Build a job, then tap <b>Text to customer</b> on the options.</div>`
+    : `<table class="tbl"><thead><tr><th>Sent</th><th>Customer sees</th><th>Status</th><th></th></tr></thead><tbody>
+      ${rows.map(r=>{
+        const p=r.payload||{}; const n=(p.o&&p.o.length)||0;
+        const when=new Date(r.created_at).toLocaleString();
+        const ap=r.approval;
+        return `<tr><td class="mini">${esc(when)}</td>
+          <td>${n} option${n===1?'':'s'}${p.o&&p.o.length?` · up to ${fmt(Math.max.apply(null,p.o.map(x=>x.t)))}`:''}</td>
+          <td>${ap?`<span class="pillcat" style="background:#e6f4ec;color:#2e7d5b">SIGNED · ${esc(ap.nm||'')}</span>`:`<span class="pillcat">Awaiting</span>`}</td>
+          <td style="text-align:right"><button class="btn btn-ghost btn-sm" onclick="openSentQuote('${esc(r.id)}')">${ap?'View signed':'Resend link'}</button></td></tr>`;
+      }).join('')}
+      </tbody></table>`;
+  return `<div class="page-head"><h2>Sent quotes</h2><p>Links you've texted customers, and the ones that came back signed.</p></div>
+    <div class="card card-pad">
+      <div style="display:flex;align-items:center;margin-bottom:12px">
+        <div class="section-title" style="margin:0">Last 40</div>
+        <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="loadSent(true)">Refresh</button>
+      </div>
+      ${body}
+    </div>`;
+}
+
 /* ---- customer side: public read-only options + remote approval ---- */
 let PUB=null, PUBSIG={drawing:false,lx:0,ly:0,strokes:[],cur:null};
 function pubShow(html){ const p=document.getElementById('pub'); p.className='wrap'; p.innerHTML=html;
   document.getElementById('gate').classList.add('hidden'); document.getElementById('app').classList.add('hidden'); window.scrollTo(0,0); }
 function pubHead(P,sub){ return `<div class="proposal-head" style="display:block;margin:22px 0 18px">
+    ${P.logo?`<img src="${P.logo}" class="ph-logo" alt="">`:''}
     <div class="ph-co">${esc(P.co)}</div><div class="ph-t">${esc(sub||'Your Options')}</div>
     <div class="ph-d">Prepared ${new Date().toLocaleDateString()} · valid 30 days</div></div>`; }
 function renderPublicOptions(){
@@ -1623,9 +1696,13 @@ async function pubApprove(){
   if(!PUBSIG.strokes.length){ toast('Please sign in the box'); return; }
   const P=PUB, o=P.o[P.chosen];
   const back={v:1, co:P.co, n:o.n, t:o.t, l:o.l, nm, at:new Date().toLocaleString(), sg:PUBSIG.strokes};
+  let sent=false;
+  if(P.code){                                  // stored quote — send it straight back to the shop
+    try{ const {data,error}=await sb.rpc('approve_quote',{q_id:P.code, q_approval:back}); sent=!error&&data!==false; }catch(e){}
+  }
   let url='';
-  try{ url=location.origin+location.pathname+'?a='+await packPayload(back); }catch(e){}
-  PUB.done={nm, at:back.at, url};
+  if(!sent){ try{ url=linkBase()+'?a='+await packPayload(back); }catch(e){} }
+  PUB.done={nm, at:back.at, url, sent};
   pubShow(renderPublicDone());
 }
 function renderPublicDone(){
@@ -1639,9 +1716,14 @@ function renderPublicDone(){
         <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="#2e7d5b" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg> APPROVED &amp; SIGNED</div>
       <div style="margin-top:8px;font-size:15px"><b>${esc(o.n)}</b> · ${fmt(o.t)}</div>
       <div class="mini">${esc(d.nm)} · ${esc(d.at)}</div></div>
-    <div class="callout" style="margin:0 0 14px"><b>One last step</b> — send this back to ${esc(P.co)} so they have your signed approval on file.</div>
-    <a class="btn btn-red btn-block" style="text-decoration:none;text-align:center" href="${esc(sms)}">Send approval by text</a>
-    ${d.url?`<button class="btn btn-ghost btn-block" style="margin-top:10px" onclick="pubShareBack()">Other ways to send</button>`:''}
+    ${d.sent?`
+      <div class="callout" style="margin:0 0 14px;border-color:#2e7d5b;background:#f2faf5">
+        <b>${esc(P.co)} has your approval.</b> It was sent automatically — nothing else to do.</div>
+      <a class="btn btn-ghost btn-block" style="text-decoration:none;text-align:center" href="${esc(sms)}">Text them a note (optional)</a>`
+    :`
+      <div class="callout" style="margin:0 0 14px"><b>One last step</b> — send this back to ${esc(P.co)} so they have your signed approval on file.</div>
+      <a class="btn btn-red btn-block" style="text-decoration:none;text-align:center" href="${esc(sms)}">Send approval by text</a>
+      ${d.url?`<button class="btn btn-ghost btn-block" style="margin-top:10px" onclick="pubShareBack()">Other ways to send</button>`:''}`}
     <p class="mini" style="text-align:center;margin:12px 0 0;color:var(--mute)">${esc(P.co)} will confirm and schedule with you.</p>
   </div></div><div style="height:40px"></div>`;
 }
@@ -1675,9 +1757,22 @@ function renderReturnedApproval(A){
 /* Route the page BEFORE auth: a customer opening ?q= or ?a= must never hit the sign-in gate. */
 async function routePublic(){
   let p; try{ p=new URLSearchParams(location.search); }catch(e){ return false; }
-  const q=p.get('q'), a=p.get('a');
-  if(!q&&!a) return false;
+  const q=p.get('q'), a=p.get('a'), j=p.get('j');
+  if(!q&&!a&&!j) return false;
   try{
+    if(j){                                     // short link — fetch the stored quote
+      const {data,error}=await sb.rpc('get_quote',{q_id:j});
+      if(error||!data||!data.payload) throw new Error('not found');
+      if(data.approval){                       // already signed — show the signed record
+        document.title=(data.approval.co||'Signed')+' - Agreed Scope - '+(data.approval.nm||'');
+        pubShow(renderReturnedApproval(data.approval));
+        setTimeout(()=>drawStrokes(document.getElementById('retSig'), data.approval.sg),40);
+        return true;
+      }
+      PUB=data.payload; PUB.chosen=null; PUB.code=j;
+      document.title=(PUB.co||'Your Options')+' — Your Options';
+      pubShow(renderPublicOptions()); return true;
+    }
     if(q){ PUB=await unpackPayload(q); PUB.chosen=null;
       document.title=(PUB.co||'Your Options')+' — Your Options';
       pubShow(renderPublicOptions()); return true; }
