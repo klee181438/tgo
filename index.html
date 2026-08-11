@@ -12,7 +12,12 @@
 
 <!-- Link preview shown when a customer receives the options by text/email.
      Messaging apps do NOT run JavaScript, so these must be static here —
-     a title set later by JS will never appear in the preview. -->
+     a title set later by JS will never appear in the preview.
+
+     ⛔ LICENSING BLOCKER: these are HARDCODED to True Grit Plumbing. With a second
+     shop on the platform, THEIR customer's text would show TRUE GRIT's name + logo.
+     Fixing this needs per-tenant tag injection (edge renderer or per-shop page).
+     See project doc: claude/BEFORE-LICENSING.md  item 2. -->
 <meta property="og:type"        content="website">
 <meta property="og:site_name"   content="True Grit Plumbing">
 <meta property="og:title"       content="Your Options — True Grit Plumbing">
@@ -1529,6 +1534,10 @@ async function unpackPayload(str){
 }
 /* everything the customer's phone needs to draw the options.
    withLogo: only when the quote is STORED (short link) — a logo never fits in a URL. */
+/* ⛔ LICENSING BUG (claude/BEFORE-LICENSING.md item 3): this does NOT send linkBase,
+   so the alert email's SQL falls back to the literal 'quote.calltruegrit.com' every
+   time. Harmless while True Grit is the only shop; wrong for any licensee. Fix =
+   add  linkBase:(s.linkBase||'')  below and make the SQL fallback tenant-derived. */
 function customerPayload(withLogo){
   const c=co(), s=c.settings, N=jb.options.length;
   return { v:1, co:c.name, ph:(s.shopPhone||''), feat:featuredIndex(N),
@@ -1544,7 +1553,10 @@ function pubMonthly(t,f){ if(!f) return ''; const m=f.m||1, r=(f.a||0)/100/12;
   const v=(r<=0)?Math.ceil(t/m):Math.ceil(t*r/(1-Math.pow(1+r,-m)));
   return 'as low as '+fmt(v)+'/mo'+(f.w?' · Wisetack':''); }
 
-/* Base address for customer links — set "Customer link domain" in Pricing to your own
+/* ⛔ LICENSING: one customer-facing domain serves ALL tenants today. Per-shop domains
+   need a host that allows multiple custom domains (GitHub Pages allows only one per
+   repo) — see claude/BEFORE-LICENSING.md item 4.
+   Base address for customer links — set "Customer link domain" in Pricing to your own
    domain (e.g. quote.calltruegrit.com) so customers never see a github.io address. */
 function linkBase(){
   const b=(co().settings.linkBase||'').trim().replace(/\/+$/,'');
