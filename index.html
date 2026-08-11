@@ -1573,18 +1573,33 @@ function shortCode(){ const A='ABCDEFGHJKMNPQRSTUVWXYZ23456789'; let s='';   // 
 async function shareCustomerLink(){
   if(!jb.options){ toast('Build the options first'); return; }
   const c=co(); const msg='Here are your options from '+c.name;
-  let url=null;
-  if(authed()){
-    try{
-      const code=shortCode();
-      const {error}=await sb.rpc('create_quote',{q_id:code, q_payload:customerPayload(true), q_tenant:(ME&&ME.tenantId)||null});
-      if(!error) url=linkBase()+'?j='+code;
-    }catch(e){}
+  let url=null, why='';
+
+  /* Saving the quote is what makes approval alerts + the Sent tab work.
+     authed() only reads a CACHED id, so it can be true while the Supabase
+     token has quietly expired — in that case the save is rejected. Refresh
+     and retry once before giving up, and never fail silently. */
+  async function trySave(){
+    const code=shortCode();
+    const {error}=await sb.rpc('create_quote',
+      {q_id:code, q_payload:customerPayload(true), q_tenant:(ME&&ME.tenantId)||null});
+    return error ? {err:(error.message||'save failed')} : {url:linkBase()+'?j='+code};
   }
-  if(!url){                                   // no backend yet — self-contained link
+  try{
+    let r=await trySave();
+    if(r.err){
+      try{ await sb.auth.refreshSession(); }catch(e){}
+      let live=null; try{ const s=await sb.auth.getSession(); live=s&&s.data&&s.data.session; }catch(e){}
+      r = live ? await trySave() : {err:'your sign-in expired — sign out and back in'};
+    }
+    if(r.url) url=r.url; else why=r.err;
+  }catch(e){ why=(e&&e.message)||'save failed'; }
+
+  if(!url){                                   // self-contained link: works, but NO alerts
     try{ url=linkBase()+'?q='+await packPayload(customerPayload(false)); }
     catch(e){ toast('Could not build the link'); return; }
     if(url.length>7500){ toast('Too many options for one link — try 3 options'); return; }
+    toast('⚠ Long link — you will NOT get an approval email: '+String(why).slice(0,60));
   }
   if(navigator.share){ try{ await navigator.share({title:msg, text:msg, url}); return; }catch(e){ if(e&&e.name==='AbortError') return; } }
   linkFallback(url, msg);
