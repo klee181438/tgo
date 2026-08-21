@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="True Grit">
+<meta name="apple-mobile-web-app-title" content="OptionsPush">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#1f2429">
-<title>True Grit Options — Job Builder</title>
+<title>OptionsPush — Job Builder</title>
 
 <!-- Link preview shown when a customer receives the options by text/email.
      Messaging apps do NOT run JavaScript, so these must be static here —
@@ -38,8 +38,8 @@
 <link rel="apple-touch-icon"     href="https://calltruegrit.com/wp-content/uploads/2026/03/cropped-Image-3-1-180x180.jpeg">
 <style>
 :root{
-  --charcoal:#1f2429;--charcoal2:#2b3138;--steel:#3d4752;--red:#c8382e;--red-dk:#a12b23;
-  --bg:#eef1f4;--panel:#fff;--line:#d9dee4;--ink:#1f2429;--mute:#697585;--good:#2e7d5b;--gold:#c8952a;
+  --charcoal:#122a4d;--charcoal2:#1b3b68;--steel:#3d4752;--red:#14315c;--red-dk:#0d2444;
+  --bg:#eef1f4;--panel:#fff;--line:#d9dee4;--ink:#1f2429;--mute:#697585;--good:#3f8f36;--gold:#c8952a;
   --shadow:0 1px 3px rgba(20,28,38,.08),0 8px 24px rgba(20,28,38,.08);
   --shadow-lg:0 12px 40px rgba(20,28,38,.18);--r:14px;
 }
@@ -191,7 +191,8 @@ h1,h2,h3,h4{margin:0;line-height:1.2}
 .line{display:flex;justify-content:space-between;gap:10px;padding:9px 0;font-size:14px;border-bottom:1px dashed var(--line)}
 .line.total{border-bottom:none;font-weight:900;font-size:18px;padding-top:13px}
 
-.gate{min-height:100vh;display:grid;place-items:center;background:radial-gradient(1200px 500px at 50% -10%,#2b3138,#1a1e23)}
+#gate h2:empty{display:none}
+.gate{min-height:100vh;display:grid;place-items:center;background:radial-gradient(1200px 500px at 50% -10%,#1b3b68,#0d2444)}
 .gate .box{background:#fff;border-radius:18px;padding:34px 30px;width:100%;max-width:380px;box-shadow:var(--shadow-lg);text-align:center}
 .gate .mark{width:60px;height:60px;border-radius:14px;background:linear-gradient(150deg,var(--red),var(--red-dk));display:grid;place-items:center;font-weight:900;font-size:26px;color:#fff;margin:0 auto 16px}
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--charcoal);color:#fff;padding:13px 22px;border-radius:12px;font-weight:700;font-size:14px;box-shadow:var(--shadow-lg);z-index:200;transition:.3s;opacity:0}
@@ -253,9 +254,9 @@ h1,h2,h3,h4{margin:0;line-height:1.2}
 
 <div id="gate" class="gate">
   <div class="box">
-    <div class="mark">TG</div>
-    <h2 style="font-size:21px">True Grit Options</h2>
-    <p style="color:var(--mute);font-size:13.5px;margin:6px 0 20px">On-the-fly options for the field</p>
+    <img src="logo.svg" alt="OptionsPush" style="display:block;width:210px;max-width:80%;height:auto;margin:2px auto 4px">
+    <h2 id="gateHeading" style="font-size:21px;margin:10px 0 0"></h2>
+    <p id="gateSub" style="color:var(--mute);font-size:13.5px;margin:8px 0 20px">On-the-fly options for the field</p>
     <div class="field" style="text-align:left">
       <label>Email</label>
       <input id="gateEmail" type="email" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="you@shop.com">
@@ -272,7 +273,7 @@ h1,h2,h3,h4{margin:0;line-height:1.2}
 
 <div id="app" class="hidden">
   <div class="topbar">
-    <div class="brand"><div class="mark" id="brandMark">TG</div><div class="bt" id="brandName">True Grit Options<small>JOB BUILDER</small></div></div>
+    <div class="brand"><div class="mark" id="brandMark"><img src="icon.svg" alt="" style="width:100%;height:100%;object-fit:contain"></div><div class="bt" id="brandName">OptionsPush<small>JOB BUILDER</small></div></div>
     <div class="topnav" id="topnav"></div>
     <div class="company-pill" id="companyPill"><span class="dot"></span><span id="companyName">—</span></div>
   </div>
@@ -534,7 +535,7 @@ function newCompany(id,name,over){
     book:seedBook()
   }, over||{});
 }
-function seed(){ return { masterName:'True Grit Software Co.', activeCompanyId:'tgp',
+function seed(){ return { masterName:'OptionsPush', activeCompanyId:'tgp',
   companies:[ newCompany('tgp','True Grit Plumbing'),
     newCompany('demo','Sample Licensee (Demo Co.)',{settings:{laborRate:165,useSliding:false,flatMarkup:40,markupTiers:defaultMarkupTiers(),taxPct:6.5,roundTo:1,financeMonths:24,showMonthly:false,numOptions:3,spread:[0.4,0.65,0.9]}}) ] }; }
 
@@ -833,7 +834,7 @@ function closeModal(){ document.getElementById('modalRoot').innerHTML=''; }
 
 /* ================= AUTH / NAV ================= */
 let __gateMode='signin';
-function toggleGateMode(){ __gateMode=(__gateMode==='signin')?'signup':'signin'; const h=document.querySelector('#gate h2'); if(h)h.textContent=(__gateMode==='signin')?'True Grit Options':'Create your account'; const b=document.getElementById('gateBtn'); if(b)b.textContent=(__gateMode==='signin')?'Sign in':'Create account'; gmsg(''); }
+function toggleGateMode(){ __gateMode=(__gateMode==='signin')?'signup':'signin'; const h=document.getElementById('gateHeading'); if(h)h.textContent=(__gateMode==='signin')?'':'Create your account'; const b=document.getElementById('gateBtn'); if(b)b.textContent=(__gateMode==='signin')?'Sign in':'Create account'; gmsg(''); }
 function gmsg(t){ const m=document.getElementById('gateMsg'); if(m)m.textContent=t||''; }
 async function tryLogin(){ const email=(document.getElementById('gateEmail').value||'').trim().toLowerCase(); const pass=document.getElementById('gatePass').value; if(!email||!pass){ gmsg('Enter your email and password.'); return; }
   const btn=document.getElementById('gateBtn'); btn.textContent='…';
@@ -869,7 +870,7 @@ function renderNav(){
   document.getElementById('topnav').innerHTML=tabs.map(([id,l,ic])=>`<button class="${TAB===id?'active':''}" onclick="go('${id}')">${ic}<span>${l}</span></button>`).join('')+`<button onclick="logout()" title="Sign out">${ICO.out}</button>`;
   document.getElementById('companyName').textContent=co().name;
   { const s=co().settings||{}; const ini=(co().name||'?').split(/\s+/).filter(Boolean).map(w=>w[0]).join('').slice(0,2).toUpperCase();
-    const bm=document.getElementById('brandMark'); if(bm){ if(s.logo){ bm.innerHTML='<img src="'+s.logo+'" alt="logo" style="width:100%;height:100%;object-fit:contain">'; bm.style.background='#fff'; bm.style.padding='3px'; } else { bm.textContent=ini||'TG'; bm.style.background=''; bm.style.padding=''; } }
+    const bm=document.getElementById('brandMark'); if(bm){ if(s.logo){ bm.innerHTML='<img src="'+s.logo+'" alt="logo" style="width:100%;height:100%;object-fit:contain">'; bm.style.background='#fff'; bm.style.padding='3px'; } else { bm.textContent=ini||'OP'; bm.style.background=''; bm.style.padding=''; } }
     const bn=document.getElementById('brandName'); if(bn) bn.innerHTML=esc(co().name)+'<small>JOB BUILDER</small>'; }
 }
 function go(t){ TAB=t; render(); window.scrollTo(0,0); }
@@ -1537,7 +1538,7 @@ function renderMaster(){
   </div>`;
 }
 function switchCompany(id){ DB.activeCompanyId=id; saveState(); TAB='jobbuilder'; newJob(); toast('Now on '+co().name); }
-function addCompany(){ openModal('Add licensed company', `<div class="field"><label>Company name</label><input id="ncName" placeholder="e.g. Peachtree Plumbing"></div><div class="field"><label>Start from</label><select id="ncClone"><option value="tgp">Clone True Grit's book (recommended)</option><option value="blank">Blank book</option></select></div><div style="display:flex;gap:10px;margin-top:16px"><button class="btn btn-ghost btn-block" onclick="closeModal()">Cancel</button><button class="btn btn-red btn-block" onclick="doAddCompany()">Create</button></div>`); }
+function addCompany(){ openModal('Add licensed company', `<div class="field"><label>Company name</label><input id="ncName" placeholder="e.g. Peachtree Plumbing"></div><div class="field"><label>Start from</label><select id="ncClone"><option value="tgp">Clone the starter book (recommended)</option><option value="blank">Blank book</option></select></div><div style="display:flex;gap:10px;margin-top:16px"><button class="btn btn-ghost btn-block" onclick="closeModal()">Cancel</button><button class="btn btn-red btn-block" onclick="doAddCompany()">Create</button></div>`); }
 function doAddCompany(){ const name=document.getElementById('ncName').value.trim(); if(!name){toast('Enter a name');return;} const clone=document.getElementById('ncClone').value; const base=clone==='blank'?null:(DB.companies.find(c=>c.id==='tgp')||DB.companies[0]); const nc=newCompany(newId('co'),name); if(base){nc.settings=JSON.parse(JSON.stringify(base.settings));nc.tiers=JSON.parse(JSON.stringify(base.tiers));nc.book=JSON.parse(JSON.stringify(base.book));} else {nc.book=[];} DB.companies.push(nc); DB.activeCompanyId=nc.id; saveState(); closeModal(); TAB='jobbuilder'; newJob(); toast('Company created'); }
 function deleteCompany(id){ if(DB.companies.length<=1){toast('Keep at least one');return;} openModal('Remove company?', `<p style="color:var(--mute);margin:0 0 16px">Deletes the company and its book.</p><div style="display:flex;gap:10px"><button class="btn btn-ghost btn-block" onclick="closeModal()">Cancel</button><button class="btn btn-red btn-block" onclick="doDelCompany('${id}')">Delete</button></div>`); }
 function doDelCompany(id){ DB.companies=DB.companies.filter(c=>c.id!==id); if(DB.activeCompanyId===id)DB.activeCompanyId=DB.companies[0].id; saveState(); sbDelete(id); closeModal(); render(); }

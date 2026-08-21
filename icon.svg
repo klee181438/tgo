@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160" role="img" aria-label="OptionsPush">
+  <defs><mask id="ic"><rect width="160" height="160" fill="#fff"/>
+    <path d="M91.0 91.5 L91.0 -1.7" stroke="#000" stroke-width="28.1" stroke-linecap="round" fill="none"/>
+  </mask></defs>
+  <rect width="160" height="160" rx="34" fill="#14315c"/>
+  <g mask="url(#ic)">
+    <path fill="#ffffff" transform="translate(22.00 138.00) scale(0.13200 -0.13200)" d="M33 353Q33 456 81.5 538.0Q130 620 212.5 666.0Q295 712 394 712Q493 712 575.5 666.0Q658 620 705.5 538.0Q753 456 753 353Q753 250 705.0 167.5Q657 85 575.0 39.0Q493 -7 394 -7Q295 -7 212.5 39.0Q130 85 81.5 167.5Q33 250 33 353ZM579 353Q579 446 528.5 501.5Q478 557 394 557Q309 557 258.5 502.0Q208 447 208 353Q208 260 258.5 204.5Q309 149 394 149Q478 149 528.5 205.0Q579 261 579 353Z"/>
+  </g>
+  <g stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M53.1 117.7 L53.1 99.4" stroke="#ffffff" stroke-width="14.1"/>
+    <path d="M72.0 117.7 L72.0 84.7" stroke="#8fc0f2" stroke-width="14.1"/>
+    <path d="M91.0 117.7 L91.0 12.3" stroke="#83bc44" stroke-width="14.1"/>
+    <path d="M74.8 28.5 L91.0 12.3 L107.2 28.5" stroke="#83bc44" stroke-width="14.1"/>
+  </g>
+</svg>
