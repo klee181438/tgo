@@ -870,6 +870,69 @@ async function tryLogin(){ const email=(document.getElementById('gateEmail').val
   else { const {data,error}=await sb.auth.signUp({email,password:pass}); if(error){ gmsg(error.message); btn.textContent='Create account'; return; } if(data.session){ boot(); } else { gmsg('Account created — check your email to confirm, then sign in.'); btn.textContent='Create account'; __gateMode='signin'; } }
 }
 function roleToUi(r){ return (r==='superadmin')?'master':((r==='owner')?'owner':'staff'); }
+
+/* ============ CRM handoff v1 — options handed over from a CRM ============
+   A CRM can open this tool with the customer AND an already-written set of
+   options: ?ohv=1&oh=[{"n":name,"p":price,"d":description}]
+
+   Purpose: the tech writes the job up in the CRM (in the truck), then presents
+   and gets it signed here, without retyping the prices.
+
+   Three things worth knowing before changing this:
+
+   1. Rows are SORTED ASCENDING BY PRICE. enforceTierOrder() nudges an option's
+      price UP whenever it is not dearer than the one below it — silently, by
+      design, for options built off the price book. A CRM hands them over in
+      the order somebody typed them, which is not necessarily cheapest-first,
+      so without this sort the tool would quietly change a price the customer
+      has already been quoted. That must never happen.
+
+   2. Each option becomes ONE one-off task with priceLocked, in jb.overrides.
+      taskPrice() returns t.price outright for a task that is not `custom`, so
+      the handed-over figure is used exactly as sent — the price book does not
+      re-derive it.
+
+   3. jb.issues is left EMPTY on purpose. Issues are items of work and every
+      option contains all of them; a handed-over ladder is already built, so
+      giving it issues would multiply it. Pressing "Build the options" after a
+      handoff rebuilds from an empty issue list and clears it, which is the
+      correct meaning of that button.
+
+   Any failure here leaves the tool exactly as it was — the whole thing is
+   wrapped, and a tool that cannot read a handoff must still quote. */
+function crmHandoffRows(){
+  try{
+    const p=new URLSearchParams(location.search);
+    if(p.get('ohv')!=='1') return null;
+    const raw=p.get('oh'); if(!raw) return null;
+    const rows=JSON.parse(raw);
+    if(!Array.isArray(rows)||!rows.length) return null;
+    return rows.map(function(r){
+      return { n:String((r&&r.n)||'').trim(), p:Number(r&&r.p)||0, d:String((r&&r.d)||'') };
+    }).filter(function(r){ return r.n; }).sort(function(a,b){ return a.p-b.p; });
+  }catch(e){ return null; }
+}
+function applyCrmHandoff(){
+  try{
+    const rows=crmHandoffRows(); if(!rows||!rows.length) return false;
+    const c=co(); if(!c||!c.tiers) return false;
+    ensureTiers(c, rows.length);
+    jb.issues=[];
+    if(!jb.overrides) jb.overrides={};
+    jb.options=rows.map(function(r,i){
+      const id=newId('crm');
+      jb.overrides[id]={ id:id, g:'', name:r.n, price:r.p, cost:0, tier:null,
+                         custom:false, priceLocked:true, desc:r.d, oneOff:true };
+      const base=c.tiers[i]||{};
+      const tier={ key:base.key||('crm'+i), name:r.n, tag:'', color:base.color||'#4a7a92', gold:false };
+      return { tier:tier, lines:[{ issue:{phrase:r.n}, taskId:id, groupKey:null, disc:1, addon:false, adj:0 }] };
+    });
+    applyAddOns();
+    jb.options.forEach(function(o){ o.baseTotal=optionTotal(o); });
+    return true;
+  }catch(e){ console.error('[crm handoff]', e); jb.options=null; return false; }
+}
+
 async function boot(){
   let session=null;
   try{ const r=await sb.auth.getSession(); session=(r&&r.data)?r.data.session:null; }catch(e){}
@@ -885,6 +948,8 @@ async function boot(){
   TAB='jobbuilder';
   const res=await pullAndApply(); // 'offline' keeps the last-synced book that's already cached locally
   try{ const sp=new URLSearchParams(location.search).get('shop'); if(sp && ROLE==='master' && DB.companies.find(c=>c.id===sp)) DB.activeCompanyId=sp; }catch(e){}
+  // After the book and company are loaded, so tiers and settings exist.
+  applyCrmHandoff();
   enterApp();
   if(res==='offline'){ toast('Offline — using your saved price book'); }
 }
