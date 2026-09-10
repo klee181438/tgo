@@ -578,6 +578,27 @@ function custFromUrl(){
   return c;
 }
 
+/* Which technician is holding the phone.
+   Read once, at load, from the handoff link the CRM builds — NOT from `jb`,
+   which is thrown away and rebuilt every time a new job is started. Losing the
+   tech halfway through an afternoon would be worse than never having him.
+
+   Before this, every estimate that arrived in the CRM from here had
+   `presented_by` null, because a static page had no idea who was using it.
+   That single gap is why "how often does Logan close" had no answer.
+
+   A quote built cold — straight to quote.calltruegrit.com, not from a job —
+   has no tech, and lands unattributed exactly as everything did before. */
+function techFromUrl(){
+  try{
+    const p=new URLSearchParams(location.search);
+    const id=(p.get('tq')||'').trim();
+    if(!/^[0-9a-f-]{36}$/i.test(id)) return null;
+    return { id, name:(p.get('tqn')||'').trim() };
+  }catch(e){ return null; }
+}
+const TECH=techFromUrl();
+
 let jb={ text:'', issues:[], options:null, chosen:null, presented:false, overrides:{}, cust:custFromUrl() };
 
 /* ================= HELPERS ================= */
@@ -820,6 +841,38 @@ async function aiFillDesc(fieldId,name,groupLabel,btn){
 }
 function effLine(l){ const s=co().settings; const t=taskById(l.taskId); const base=(t?taskPrice(t,s):0)*(l.disc==null?1:l.disc); return base+(l.adj||0); }
 function optionTotal(opt){ const s=co().settings; return roundTo(opt.lines.reduce((a,l)=>a+effLine(l),0), s.roundTo||1); }
+
+/* What this option COSTS us, as opposed to what it sells for.
+   Added 10 Sep 2026 so the CRM can show gross margin per technician — the
+   number a buyer asks for first, and the one that catches a tech who looks
+   productive while discounting everything he touches.
+
+   Two things it deliberately does not do:
+
+   - It never applies the add-on discount. `effLine` cuts the PRICE of the
+     second and third task on a job because the tech is already onsite; the
+     parts still cost what they cost. Discounting the cost too would report
+     the same margin however deep the discount went, which is exactly the
+     thing this is meant to detect.
+   - It returns null, not zero, if ANY line has no cost on it. A partial cost
+     read as a whole one is a job that looks far more profitable than it was,
+     and one of those is enough to skew a week. 161 of the 163 tasks in the
+     book have no labour hours; costs are better filled in than that, but
+     "better" is not "all", so this has to be honest about the gaps.
+
+   This travels in the `crm` column, never in the customer payload. Anyone
+   holding the quote link can read that payload. */
+function optionCost(opt){
+  if(!opt||!opt.lines||!opt.lines.length) return null;
+  let sum=0;
+  for(const l of opt.lines){
+    const t=taskById(l.taskId);
+    const c=t?Number(t.cost):NaN;
+    if(!isFinite(c)) return null;
+    sum+=c;
+  }
+  return Math.round(sum*100)/100;
+}
 /* Multi-item pricing: the highest-cost task in each option is the "main" job at full price; every
    cheaper task becomes an add-on at a discount (tech is already onsite). Silent — no customer wording. */
 function applyAddOns(){
@@ -992,6 +1045,9 @@ function renderJB(){
     <div class="field" style="flex:1 1 180px;margin-bottom:0"><label>Phone</label>
       <input id="jbCustPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="770-555-0134" value="${esc(jb.cust.phone)}" oninput="jb.cust.phone=this.value"></div>
   </div>
+  ${TECH ? `<p class="no-print" style="margin:-18px 0 26px;font-size:13px;color:#6b7280">
+    Quoting as <strong>${esc(TECH.name||'a technician')}</strong>. This quote will be
+    credited to ${esc((TECH.name||'').split(' ')[0]||'them')} on the scorecard.</p>` : ''}
 
   <div class="page-head no-print"><h2>What's going on at this job?</h2>
     <p>Type it like you'd say it. Every item gets matched to your price book, then bundled into whole-visit options.</p></div>
@@ -1692,7 +1748,17 @@ async function pushCrm(code){
       phone:  String(c.phone||'').trim()||null,
       email:  String(c.email||'').trim()||null,
       address:c.address||null,
-      crmId:  c.crmId||null }});
+      crmId:  c.crmId||null,
+      /* Who presented it, and what each tier costs us. Both are internal and
+         both are why this is a separate call writing to a separate column:
+         `payload` is downloaded by the customer's phone, `crm` never is.
+
+         `costs` is positional — it lines up index-for-index with `payload.o`,
+         which is the order the options are already stored and pushed in. A
+         null in the array means that tier had a task with no cost on it, and
+         must stay null the whole way to the CRM. */
+      presentedBy: TECH ? TECH.id : null,
+      costs: (jb.options||[]).map(optionCost) }});
   }catch(e){ /* the quote itself is safe; the estimate can be added by hand */ }
 }
 function customerPayload(withLogo){
