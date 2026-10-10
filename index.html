@@ -248,6 +248,23 @@ h1,h2,h3,h4{margin:0;line-height:1.2}
 .proposal-head .ph-t{ font-size:25px; font-weight:900; margin-top:2px; }
 .proposal-head .ph-d{ font-size:11.5px; color:var(--mute); margin-top:3px; }
 </style>
+<style>
+/* Customer view. The phone gets turned round at a kitchen table, so the cost
+   column has to be able to disappear without needing a second screen. */
+body.hide-cost .costcol{display:none}
+</style>
+<script>
+/* Remembered per device: whose phone it is decides the answer. */
+(function(){try{if(localStorage.getItem('tgHideCost')==='1'){document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('hide-cost');});}}catch(e){}})();
+function hideCostOn(){return document.body.classList.contains('hide-cost');}
+function toggleHideCost(){
+  var on=!hideCostOn();
+  document.body.classList.toggle('hide-cost',on);
+  try{localStorage.setItem('tgHideCost',on?'1':'0');}catch(e){}
+  var b=document.getElementById('hideCostBtn');
+  if(b)b.textContent=on?'Cost hidden':'Hide cost';
+}
+</script>
 </head>
 <body>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -530,7 +547,7 @@ function newCompany(id,name,over){
   return Object.assign({
     id,name,
     settings:{ laborRate:225, useSliding:true, markupTiers:defaultMarkupTiers(), flatMarkup:35,
-      taxPct:0, roundTo:1, financeMonths:36, showMonthly:true, numOptions:5, spread:linspace(0.3,0.92,5), optionLayout:'stacked', enforceOrder:true, tierGapPct:12, addOnPct:25, spreadCap:4, featuredPos:'middle', financeApr:0, wisetackUrl:'', shopPhone:'', linkBase:'' },
+      taxPct:0, roundTo:1, financeMonths:36, showMonthly:true, numOptions:5, spread:linspace(0.3,0.92,5), optionLayout:'stacked', enforceOrder:true, tierGapPct:12, addOnPct:25, gritPct:10, spreadCap:4, featuredPos:'middle', financeApr:0, wisetackUrl:'', shopPhone:'', linkBase:'' },
     tiers:defaultTiers(),
     book:seedBook()
   }, over||{});
@@ -1484,7 +1501,7 @@ function renderBook(){
   <div class="page-head"><h2>Price Book</h2><p>${c.book.length} tasks across your job groups. Real Profit Rhino prices — plus anything you build in the field.</p></div>
   <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px">
     <input placeholder="Search job groups…" value="${esc(bookSearch)}" oninput="bookSearch=this.value;document.getElementById('view').innerHTML=renderBook()" style="flex:1;min-width:200px;padding:12px 14px;border:1.5px solid var(--line);border-radius:11px">
-    <button class="btn btn-ghost btn-sm" onclick="manageCategories()">Categories</button>
+    <button id="hideCostBtn" class="btn btn-ghost btn-sm" title="Hides your cost everywhere in the book so the phone can be turned round" onclick="toggleHideCost()">${hideCostOn()?'Cost hidden':'Hide cost'}</button> <button class="btn btn-ghost btn-sm" onclick="manageCategories()">Categories</button>
     <button class="btn btn-ghost btn-sm" onclick="newJobGroup()">${ICO.plus} New job group</button>
     <button class="btn btn-red btn-sm" onclick="openCustomTask('',null)">${ICO.plus} Build a task</button>
   </div>
@@ -1584,13 +1601,14 @@ function openGroup(k){
   const label=k==='custom'?'Your Custom Tasks':(grp(k)?grp(k).label:'Job group');
   const ts=c.book.filter(t=>t.g===k).sort((a,b)=>taskPrice(a,s)-taskPrice(b,s));
   const pct=(s.addOnPct!=null?s.addOnPct:25);
+  const gpct=(s.gritPct!=null?s.gritPct:10);
   const addBtn=(k==='custom')?`<button class="btn btn-red btn-sm" onclick="closeModal();openCustomTask('',null)">${ICO.plus} Build a task</button>`
     :`<button class="btn btn-red btn-sm" onclick="closeModal();openCustomTask('',null,'${k}')">${ICO.plus} Add a task to this group</button>`;
   const editGroupBtn=(k!=='custom')?`<button class="btn btn-ghost btn-sm" onclick="editGroup('${k}')">Edit name</button>`:'';
   const delGroupBtn=(mine&&!ts.length)?`<button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="deleteJobGroup('${k}')">Delete group</button>`:'';
-  const body = ts.length ? `<table class="tbl"><thead><tr><th>Task</th><th>Cost</th><th>Price</th><th title="Price when this is an added task on a multi-item option">Add-on <span class="mini" style="font-weight:600">(${pct}% off)</span></th><th></th></tr></thead><tbody>
-    ${ts.map(t=>`<tr id="brow_${t.id}"><td><b>${esc(t.name)}</b>${t.tier?` <span class="pillcat">${esc(t.tier)}</span>`:''}${t.custom?' <span class="pillcat" style="background:#e9f6ef;color:#2e7d5b">field-built</span>':''}</td><td class="mono mini">${fmt2(t.cost||0)}</td><td class="mono"><b>${fmt(taskPrice(t,s))}</b></td><td class="mono" style="color:#2e7d5b">${fmt(addOnPrice(taskPrice(t,s),pct))}</td><td style="text-align:right;white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="editBookTask('${t.id}')">Edit</button> <button class="btn btn-ghost btn-sm" style="color:var(--red)" title="Delete task" onclick="confirmDeleteTask('${t.id}','${k}')">Delete</button></td></tr>`).join('')}
-  </tbody></table><p class="mini" style="margin:12px 0 0"><b style="color:#2e7d5b">Add-on</b> = the price this task drops to when it's an extra item on a bundled option (main/highest task stays full price). Adjust the % in Pricing. Delete removes a task from your book so it stops showing in options — syncs to your other devices.</p>`
+  const body = ts.length ? `<table class="tbl"><thead><tr><th>Task</th><th class="costcol">Cost</th><th>Price</th><th title="What a Grit Guard member pays">Grit Guard</th><th title="Price when this is an added task on a multi-item option">Add-on</th><th></th></tr></thead><tbody>
+    ${ts.map(t=>`<tr id="brow_${t.id}"><td><b>${esc(t.name)}</b>${t.tier?` <span class="pillcat">${esc(t.tier)}</span>`:''}${t.custom?' <span class="pillcat" style="background:#e9f6ef;color:#2e7d5b">field-built</span>':''}</td><td class="mono mini costcol">${fmt2(t.cost||0)}</td><td class="mono"><b>${fmt(taskPrice(t,s))}</b></td><td class="mono" style="color:#2e7d5b">${fmt(taskPrice(t,s)*(1-gpct/100))}</td><td class="mono" style="color:#2e7d5b">${fmt(addOnPrice(taskPrice(t,s),pct))}</td><td style="text-align:right;white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="editBookTask('${t.id}')">Edit</button> <button class="btn btn-ghost btn-sm" style="color:var(--red)" title="Delete task" onclick="confirmDeleteTask('${t.id}','${k}')">Delete</button></td></tr>`).join('')}
+  </tbody></table><p class="mini" style="margin:12px 0 0"><b style="color:#2e7d5b">Add-on</b> = the price this task drops to when it's an extra item on a bundled option (main/highest task stays full price). Adjust the % in Pricing. Delete removes a task from your book so it stops showing in options — syncs to your other devices. <b style="color:#2e7d5b">Grit Guard</b> = what a member pays, ${gpct}% off the price. Set it in Pricing, and change the website to match.</p>`
     : `<div style="text-align:center;padding:24px 12px;color:var(--mute)"><p style="margin:0">No tasks in <b>${esc(label)}</b> yet.</p><p class="mini" style="margin:6px 0 0">Add one below to start pricing this kind of job.</p></div>`;
   openModal(esc(label), body+`<div style="display:flex;gap:10px;margin-top:12px;justify-content:space-between;align-items:center;flex-wrap:wrap"><span style="display:flex;gap:8px">${editGroupBtn}${delGroupBtn}</span><span>${addBtn}</span></div>`);
 }
@@ -1652,7 +1670,8 @@ function renderAdmin(){
     <div class="field"><label>Wisetack prequalify link</label><input value="${esc(s.wisetackUrl||'')}" placeholder="https://wisetack.us/#/..../prequalify" onchange="setS('wisetackUrl',this.value)"><div class="hint">Your customer-facing Wisetack prequal URL. Adds a "Prequalify with Wisetack" button to the options and receipt so customers get their real payment (soft credit check). Each shop uses its own.</div></div>
     <div class="row2">
       <div class="field"><label>Keep tiers in price order</label><select onchange="setS('enforceOrder',this.value)"><option value="1" ${s.enforceOrder!==false?'selected':''}>Yes — auto-adjust so each stays above the one below</option><option value="0" ${s.enforceOrder===false?'selected':''}>No — just warn me</option></select><div class="hint">Prevents a lower tier from being priced above a higher one after edits.</div></div>
-      <div class="field"><label>Add-on rate — extra tasks</label><div class="inline-affix"><input type="number" value="${s.addOnPct!=null?s.addOnPct:25}" onchange="setS('addOnPct',this.value)"><span class="suf">% off</span></div><div class="hint">On multi-item jobs the biggest task is full price; every cheaper task is discounted this much automatically (you're already onsite). Never shown to the customer.</div></div>
+      <div class="field"><label>Grit Guard member rate</label><div class="inline-affix"><input type="number" value="${s.gritPct!=null?s.gritPct:10}" onchange="setS('gritPct',this.value)"><span class="suf">% off</span></div><div class="hint">What a Grit Guard member pays off every task. Must match the website, which promises 10%.</div></div>
+            <div class="field"><label>Add-on rate — extra tasks</label><div class="inline-affix"><input type="number" value="${s.addOnPct!=null?s.addOnPct:25}" onchange="setS('addOnPct',this.value)"><span class="suf">% off</span></div><div class="hint">On multi-item jobs the biggest task is full price; every cheaper task is discounted this much automatically (you're already onsite). Never shown to the customer.</div></div>
     </div>
   </div>
 
