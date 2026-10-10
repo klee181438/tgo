@@ -252,11 +252,48 @@ h1,h2,h3,h4{margin:0;line-height:1.2}
 /* Customer view. The phone gets turned round at a kitchen table, so the cost
    column has to be able to disappear without needing a second screen. */
 body.hide-cost .costcol{display:none}
+/* The present card. A screenshot cropped to the card must be safe to send,
+   so nothing inside its edges is a control and nothing inside it is cost. */
+.tapname{cursor:pointer;border-bottom:1px dashed #b9c4d0}
+.tapname:hover{border-bottom-color:#2e7d5b}
+.present-bg{position:fixed;inset:0;background:rgba(20,49,92,.76);display:flex;align-items:center;justify-content:center;padding:20px;z-index:9999}
+.present-x{position:absolute;top:14px;right:16px;width:38px;height:38px;border:0;border-radius:999px;background:rgba(255,255,255,.2);color:#fff;font-size:16px;cursor:pointer}
+.present-card{background:#fff;border-radius:20px;padding:34px 28px 30px;width:100%;max-width:420px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.32)}
+.present-logo{display:block;height:56px;width:auto;margin:0 auto 20px}
+.present-task{font-size:21px;line-height:1.3;font-weight:700;color:var(--ink)}
+.present-price{font-size:56px;line-height:1;font-weight:800;color:var(--ink);letter-spacing:-.02em;margin-top:16px}
+.present-note{font-size:13px;line-height:1.5;color:var(--mute);max-width:300px;margin:14px auto 0}
+.present-member{margin-top:22px;padding-top:16px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;color:#2e7d5b;font-size:15px}
+.present-member b{font-size:22px}
+.present-phone{margin-top:18px;font-size:15px;font-weight:700;color:var(--ink)}
+@media(max-width:420px){.present-price{font-size:46px}.present-card{padding:28px 20px 24px}}
 </style>
 <script>
 /* Remembered per device: whose phone it is decides the answer. */
 (function(){try{if(localStorage.getItem('tgHideCost')==='1'){document.addEventListener('DOMContentLoaded',function(){document.body.classList.add('hide-cost');});}}catch(e){}})();
 function hideCostOn(){return document.body.classList.contains('hide-cost');}
+/* Tapping a task name opens this. No cost, no add-on price, no buttons
+   inside the card - the close control sits on the backdrop so a crop of
+   the card is already a clean thing to text a customer. */
+function openPresent(id){
+  var c=co(), s=c.settings;
+  var t=c.book.find(function(x){return x.id===id;});
+  if(!t) return;
+  var gpct=(s.gritPct!=null?s.gritPct:10);
+  var price=taskPrice(t,s);
+  var member=price*(1-gpct/100);
+  var phone=(s.shopPhone||String()).trim();
+  document.getElementById('modalRoot').innerHTML='<div class="present-bg" onclick="if(event.target===this)closeModal()">'
+    +'<button class="present-x" onclick="closeModal()">✕</button>'
+    +'<div class="present-card">'
+    +'<img class="present-logo" src="logo.svg" alt="">'
+    +'<div class="present-task">'+esc(t.name)+'</div>'
+    +'<div class="present-price">'+fmt(price)+'</div>'
+    +'<div class="present-note">Flat rate. Includes materials, labor and everything needed to do the job right.</div>'
+    +'<div class="present-member"><span>Grit Guard members</span><b>'+fmt(member)+'</b></div>'
+    +(phone?'<div class="present-phone">'+esc(phone)+'</div>':String())
+    +'</div></div>';
+}
 function toggleHideCost(){
   var on=!hideCostOn();
   document.body.classList.toggle('hide-cost',on);
@@ -1607,7 +1644,7 @@ function openGroup(k){
   const editGroupBtn=(k!=='custom')?`<button class="btn btn-ghost btn-sm" onclick="editGroup('${k}')">Edit name</button>`:'';
   const delGroupBtn=(mine&&!ts.length)?`<button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="deleteJobGroup('${k}')">Delete group</button>`:'';
   const body = ts.length ? `<table class="tbl"><thead><tr><th>Task</th><th class="costcol">Cost</th><th>Price</th><th title="What a Grit Guard member pays">Grit Guard</th><th title="Price when this is an added task on a multi-item option">Add-on</th><th></th></tr></thead><tbody>
-    ${ts.map(t=>`<tr id="brow_${t.id}"><td><b>${esc(t.name)}</b>${t.tier?` <span class="pillcat">${esc(t.tier)}</span>`:''}${t.custom?' <span class="pillcat" style="background:#e9f6ef;color:#2e7d5b">field-built</span>':''}</td><td class="mono mini costcol">${fmt2(t.cost||0)}</td><td class="mono"><b>${fmt(taskPrice(t,s))}</b></td><td class="mono" style="color:#2e7d5b">${fmt(taskPrice(t,s)*(1-gpct/100))}</td><td class="mono" style="color:#2e7d5b">${fmt(addOnPrice(taskPrice(t,s),pct))}</td><td style="text-align:right;white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="editBookTask('${t.id}')">Edit</button> <button class="btn btn-ghost btn-sm" style="color:var(--red)" title="Delete task" onclick="confirmDeleteTask('${t.id}','${k}')">Delete</button></td></tr>`).join('')}
+    ${ts.map(t=>`<tr id="brow_${t.id}"><td><b class="tapname" onclick="openPresent('${t.id}')" title="Show this one to the customer">${esc(t.name)}</b>${t.tier?` <span class="pillcat">${esc(t.tier)}</span>`:''}${t.custom?' <span class="pillcat" style="background:#e9f6ef;color:#2e7d5b">field-built</span>':''}</td><td class="mono mini costcol">${fmt2(t.cost||0)}</td><td class="mono"><b>${fmt(taskPrice(t,s))}</b></td><td class="mono" style="color:#2e7d5b">${fmt(taskPrice(t,s)*(1-gpct/100))}</td><td class="mono" style="color:#2e7d5b">${fmt(addOnPrice(taskPrice(t,s),pct))}</td><td style="text-align:right;white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="editBookTask('${t.id}')">Edit</button> <button class="btn btn-ghost btn-sm" style="color:var(--red)" title="Delete task" onclick="confirmDeleteTask('${t.id}','${k}')">Delete</button></td></tr>`).join('')}
   </tbody></table><p class="mini" style="margin:12px 0 0"><b style="color:#2e7d5b">Add-on</b> = the price this task drops to when it's an extra item on a bundled option (main/highest task stays full price). Adjust the % in Pricing. Delete removes a task from your book so it stops showing in options — syncs to your other devices. <b style="color:#2e7d5b">Grit Guard</b> = what a member pays, ${gpct}% off the price. Set it in Pricing, and change the website to match.</p>`
     : `<div style="text-align:center;padding:24px 12px;color:var(--mute)"><p style="margin:0">No tasks in <b>${esc(label)}</b> yet.</p><p class="mini" style="margin:6px 0 0">Add one below to start pricing this kind of job.</p></div>`;
   openModal(esc(label), body+`<div style="display:flex;gap:10px;margin-top:12px;justify-content:space-between;align-items:center;flex-wrap:wrap"><span style="display:flex;gap:8px">${editGroupBtn}${delGroupBtn}</span><span>${addBtn}</span></div>`);
