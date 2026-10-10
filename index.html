@@ -282,11 +282,15 @@ function openPresent(id){
   var gpct=(s.gritPct!=null?s.gritPct:10);
   var price=taskPrice(t,s);
   var member=price*(1-gpct/100);
-  var phone=(s.shopPhone||String()).trim();
+  /* The public line, hardcoded on purpose. s.shopPhone is labelled "Shop
+     mobile for approvals" and may well be a personal number - it must never
+     land on a card a customer is handed. */
+  var phone='770-847-GRIT';
+  var logo=(s.logo||'https://calltruegrit.com/wp-content/uploads/2026/03/True-Grit-stroked-1.png');
   document.getElementById('modalRoot').innerHTML='<div class="present-bg" onclick="if(event.target===this)closeModal()">'
     +'<button class="present-x" onclick="closeModal()">✕</button>'
     +'<div class="present-card">'
-    +'<img class="present-logo" src="https://calltruegrit.com/wp-content/uploads/2026/03/True-Grit-stroked-1.png" alt="">'
+    +'<img class="present-logo" src="'+logo+'" alt="">'
     +'<div class="present-task">'+esc(t.name)+'</div>'
     +'<div class="present-price">'+fmt(price)+'</div>'
     +'<div class="present-note">Flat rate. Includes materials, labor and everything needed to do the job right.</div>'
