@@ -269,6 +269,20 @@ body.hide-cost .costcol{display:none}
 .pm-save{font-size:17px;font-weight:800;color:#1f6b4a;margin-top:3px}
 .pm-terms{font-size:12px;color:#5c7a6c;margin-top:7px}
 .present-phone{margin-top:18px;font-size:15px;font-weight:700;color:var(--ink)}
+.present-member.tapmember{cursor:pointer;transition:box-shadow .12s ease,border-color .12s ease}
+.present-member.tapmember:hover{border-color:#9ed4b8;box-shadow:0 4px 14px rgba(47,143,98,.18)}
+.pm-chev{color:#2f8f62;font-weight:800;font-size:13px}
+.present-back{position:absolute;top:14px;left:16px;border:0;border-radius:999px;background:rgba(255,255,255,.2);color:#fff;font-size:13px;font-weight:700;padding:11px 14px;cursor:pointer}
+.gg-head{font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:800;color:#2f8f62;margin-bottom:8px}
+.gg-price{font-size:52px;line-height:1;font-weight:800;color:var(--ink);letter-spacing:-.02em;margin-bottom:18px}
+.gg-per{font-size:20px;font-weight:700;color:var(--mute);letter-spacing:0}
+.gg-list{list-style:none;margin:0 auto 18px;padding:0;text-align:left;max-width:290px}
+.gg-list li{position:relative;padding-left:26px;margin:9px 0;font-size:15px;line-height:1.35;color:var(--ink)}
+.gg-list li:before{content:"";position:absolute;left:5px;top:4px;width:6px;height:11px;border-right:3px solid #2f8f62;border-bottom:3px solid #2f8f62;transform:rotate(40deg)}
+.gg-qr{display:block;width:185px;height:185px;margin:0 auto 10px;background:#fff;image-rendering:pixelated}
+.gg-qrcap{font-size:13px;line-height:1.45;color:var(--mute);max-width:280px;margin:0 auto 16px}
+.gg-terms{font-size:13px;font-weight:700;color:var(--mute)}
+@media(max-width:420px){.gg-qr{width:148px;height:148px}.gg-price{font-size:44px}.present-back{font-size:12px;padding:9px 12px}}
 @media(max-width:420px){.present-price{font-size:46px}.present-card{padding:28px 20px 24px}.present-logo{height:84px}}
 </style>
 <script>
@@ -278,7 +292,37 @@ function hideCostOn(){return document.body.classList.contains('hide-cost');}
 /* Tapping a task name opens this. No cost, no add-on price, no buttons
    inside the card - the close control sits on the backdrop so a crop of
    the card is already a clean thing to text a customer. */
+var __presentId=null;
+/* The one-tap answer when the customer asks what Grit Guard is. The QR goes
+   straight to the Square signup link, not the website, because the website is
+   one more place to lose them. The percentage comes from the setting so this
+   card can never disagree with the price above it. */
+function openGritGuard(){
+  var c=co(), s=c.settings;
+  var t=c.book.find(function(x){return x.id===__presentId;});
+  if(!t) return;
+  var gpct=(s.gritPct!=null?s.gritPct:10);
+  var gm=(s.gritMonthly!=null?s.gritMonthly:19);
+  var logo=(s.logo||'https://calltruegrit.com/wp-content/uploads/2026/03/True-Grit-stroked-1.png');
+  var qr='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACUAAAAlAQAAAADt5R2uAAAA0ElEQVR4nGP8z8DA8JOJgYGBgQGZZPmoI8VlwcR+OFiegeVv7TV5SSaGf7cbGJgY/nc1MDB8vy53v4Lxg6rDawuG/78i638wfZ8mtoGBhV3M8k0DwweJTw9+MPEpxO5hYPnv+7buDsO/7Ff7f7Awvv4bmMHw++PEXz8Y/k9kzPvB9FP2hWwD4zcJ/ZdBTOyPkjkYGL72X2L9wfj/i24IC8MHKe6wH4zfH9zbzcHwJeYg2w8Whp/2FxsYv2QofmFn+H57RtgPpp/mNxUYGHH4AgC7CVIgm8miDAAAAABJRU5ErkJggg==';
+  var items=['Priority scheduling','No service call fee',gpct+'% off all repairs','Yearly water heater flush','Whole-home plumbing inspection'];
+  var li='';
+  for(var i=0;i<items.length;i++){li+='<li>'+items[i]+'</li>';}
+  document.getElementById('modalRoot').innerHTML='<div class="present-bg" onclick="if(event.target===this)closeModal()">'
+    +'<button class="present-back" onclick="openPresent(__presentId)">&larr; Back to the price</button>'
+    +'<button class="present-x" onclick="closeModal()">&#10005;</button>'
+    +'<div class="present-card">'
+    +'<img class="present-logo" src="'+logo+'" alt="">'
+    +'<div class="gg-head">Grit Guard Membership</div>'
+    +'<div class="gg-price">'+fmt(gm)+'<span class="gg-per">/mo</span></div>'
+    +'<ul class="gg-list">'+li+'</ul>'
+    +'<img class="gg-qr" src="'+qr+'" alt="Scan to join Grit Guard">'
+    +'<div class="gg-qrcap">Point your phone camera here to join. Takes about two minutes.</div>'
+    +'<div class="gg-terms">No contract. Cancel anytime.</div>'
+    +'</div></div>';
+}
 function openPresent(id){
+  __presentId=id;
   var c=co(), s=c.settings;
   var t=c.book.find(function(x){return x.id===id;});
   if(!t) return;
@@ -302,8 +346,8 @@ function openPresent(id){
     +'<div class="present-task">'+esc(t.name)+'</div>'
     +'<div class="present-price">'+fmt(price)+'</div>'
     +'<div class="present-note">Flat rate. Includes materials, labor and everything needed to do the job right.</div>'
-    +'<div class="present-member">'
-    +'<div class="pm-label">Grit Guard members pay</div>'
+    +'<div class="present-member tapmember" onclick="openGritGuard()" title="Show the customer what Grit Guard is">'
+    +'<div class="pm-label">Grit Guard members pay <span class="pm-chev">&rsaquo;</span></div>'
     +'<div class="pm-price">'+fmt(member)+'</div>'
     +'<div class="pm-save">Save '+fmt(save)+' on this job</div>'
     +'<div class="pm-terms">Membership is '+fmt(gm)+'/mo. No contract, cancel anytime.</div>'
