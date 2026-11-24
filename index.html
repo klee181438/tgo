@@ -158,6 +158,34 @@ h1,h2,h3,h4{margin:0;line-height:1.2}
 .job-card .jc-name{font-size:15.5px;font-weight:800}
 .job-card .jc-meta{font-size:12px;color:var(--mute);margin-top:auto}
 
+/* The price book, grouped into bands with its tasks listed underneath. The
+   wrapper owns the border, the hover and the corners so the card and the
+   task list read as one object. */
+.bk-band{margin-bottom:26px}
+.bk-bandhead{display:flex;align-items:baseline;gap:10px;border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:13px}
+.bk-bandhead h3{margin:0;font-size:12.5px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--red)}
+.bk-bandhead i{font-style:normal;font-size:12px;font-weight:700;color:var(--mute)}
+.bk-wrap{display:flex;flex-direction:column;background:#fff;border:1.5px solid var(--line);border-radius:12px;overflow:hidden;transition:.15s}
+.bk-wrap:hover{border-color:var(--red);box-shadow:var(--shadow);transform:translateY(-2px)}
+.bk-wrap.bk-mine{border-color:#4f46e5}
+.bk-wrap .job-card{border:0;border-radius:0;width:100%}
+.bk-wrap .job-card:hover{border:0;box-shadow:none;transform:none}
+.bk-tasks{list-style:none;margin:0;padding:0;background:#fbfcfe}
+.bk-tasks li{display:flex;gap:10px;align-items:baseline;padding:8px 13px;border-top:1px solid #eef1f6;font-size:13px;cursor:pointer}
+.bk-tasks li:hover{background:#eef4fc}
+.bk-tn{flex:1;min-width:0;color:var(--mute);line-height:1.3}
+.bk-tp{font-weight:800;white-space:nowrap}
+.bk-mark{background:#fdf0b8;border-radius:3px;padding:0 1px}
+.bk-more{width:100%;text-align:left;border:0;border-top:1px solid #eef1f6;background:#f4f7fb;color:var(--red);font-weight:700;font-size:12.5px;padding:9px 13px;cursor:pointer}
+.bk-more:hover{background:#eaf0f9}
+@media(max-width:640px){
+  /* A phone has no room for 138 lines, and tapping the card already opens
+     the group, which is the better place to read them. Tasks a search
+     actually matched stay put — otherwise a hit would have no visible
+     reason for being in the results. */
+  .bk-tasks:not(.bk-hit),.bk-more{display:none}
+}
+
 .tbl{width:100%;border-collapse:collapse}
 .tbl th{text-align:left;font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--mute);padding:10px 12px;border-bottom:2px solid var(--line)}
 .tbl td{padding:11px 12px;border-bottom:1px solid var(--line);font-size:14px;vertical-align:middle}
@@ -1590,7 +1618,7 @@ function renderBook(){
   const q=bookSearch.toLowerCase();
   const groupsInView=Object.keys(AG).filter(k=>{
     const g=AG[k]; if(bookCat!=='All'&&g.cat!==bookCat)return false;
-    if(q&&!(g.label.toLowerCase().includes(q)||g.cat.toLowerCase().includes(q)))return false;
+    if(q&&!(g.label.toLowerCase().includes(q)||g.cat.toLowerCase().includes(q)||groupTasks(k).some(t=>t.name.toLowerCase().includes(q))))return false;
     return true;
   });
   // include a 'custom' bucket
@@ -1598,7 +1626,7 @@ function renderBook(){
   return `
   <div class="page-head"><h2>Price Book</h2><p>${c.book.length} tasks across your job groups. Real Profit Rhino prices — plus anything you build in the field.</p></div>
   <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px">
-    <input placeholder="Search job groups…" value="${esc(bookSearch)}" oninput="bookSearch=this.value;document.getElementById('view').innerHTML=renderBook()" style="flex:1;min-width:200px;padding:12px 14px;border:1.5px solid var(--line);border-radius:11px">
+    <input placeholder="Search groups and tasks…" value="${esc(bookSearch)}" oninput="bookSearch=this.value;document.getElementById('view').innerHTML=renderBook()" style="flex:1;min-width:200px;padding:12px 14px;border:1.5px solid var(--line);border-radius:11px">
     <button id="hideCostBtn" class="btn btn-ghost btn-sm" title="Hides your cost everywhere in the book so the phone can be turned round" onclick="toggleHideCost()">${hideCostOn()?'Cost hidden':'Hide cost'}</button> <button class="btn btn-ghost btn-sm" onclick="manageCategories()">Categories</button>
     <button class="btn btn-ghost btn-sm" onclick="newJobGroup()">${ICO.plus} New job group</button>
     <button class="btn btn-red btn-sm" onclick="openCustomTask('',null)">${ICO.plus} Build a task</button>
@@ -1606,15 +1634,77 @@ function renderBook(){
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
     ${cats.map(ct=>`<button class="pillcat" style="cursor:pointer;${bookCat===ct?'background:var(--charcoal);color:#fff':''}" onclick="bookCat='${esc(ct)}';document.getElementById('view').innerHTML=renderBook()">${esc(ct)}</button>`).join('')}
   </div>
-  <div class="job-grid">
-    ${groupsInView.map(k=>{ const g=AG[k]; const ts=groupTasks(k); const mine=isCustomGroup(k);
-      if(!ts.length && !mine) return '';   // hide empty built-in groups; always show your own custom groups
-      const lo=ts.length?taskPrice(ts[0],c.settings):0, hi=ts.length?taskPrice(ts[ts.length-1],c.settings):0;
-      const meta=ts.length?`${ts.length} task${ts.length>1?'s':''} · ${fmt(lo)}${lo!==hi?'–'+fmt(hi):''}`:'No tasks yet — tap to add';
-      return `<button class="job-card" onclick="openGroup('${k}')" ${mine?'style="border-color:#4f46e5"':''}><span class="jc-cat"${mine?' style="color:#4f46e5"':''}>${esc(g.cat)}</span><span class="jc-name">${esc(g.label)}</span><span class="jc-meta">${meta}</span></button>`;
-    }).join('')}
-    ${(bookCat==='All'&&customTasks.length)?`<button class="job-card" onclick="openGroup('custom')" style="border-color:#2e7d5b"><span class="jc-cat" style="color:#2e7d5b">Field-Built</span><span class="jc-name">Your Custom Tasks</span><span class="jc-meta">${customTasks.length} task${customTasks.length>1?'s':''}</span></button>`:''}
+  <div id="bookBody">${bookBody(groupsInView, AG, c, q, customTasks)}</div>`;
+}
+
+/* ---- the book, grouped into its categories ------------------------------
+
+   Keith, 24 Nov 2026, looking at a wall of 23 cards: "any way to organize
+   this page and make it easier/quicker to find the groups and tasks?" Then,
+   on the shape he wanted: "id rather have them horizontally, but grouped
+   together (Kitchen, Bath, Drains, etc)" and "underneath each group, list
+   the tasks".
+
+   So the cards sit side by side exactly as they did. What is new is a band
+   per category, the tasks and their prices listed under each card, and a
+   search that reaches the task names — "anode" and "bidet" are tasks, not
+   groups, and the old box could not find either.
+
+   Nothing here touches pricing. `taskPrice` is still the only thing that
+   decides what a line costs.                                              */
+const BOOK_SHOW = 5;
+let bookOpen = {};
+function bookToggle(k){ bookOpen[k] = !bookOpen[k]; document.getElementById("view").innerHTML = renderBook(); }
+
+function bookMark(text, q){
+  const s = esc(text); if(!q) return s;
+  const i = s.toLowerCase().indexOf(q); if(i < 0) return s;
+  return s.slice(0,i) + '<mark class="bk-mark">' + s.slice(i, i+q.length) + "</mark>" + s.slice(i+q.length);
+}
+
+/* `showCat` is off inside a band, where the heading overhead already says
+   Kitchen. It goes back on while searching and in the Field-Built card,
+   neither of which has a heading of its own to lean on. */
+function bookCard(k, AG, c, q, showCat){
+  const g = AG[k], ts = groupTasks(k), mine = isCustomGroup(k);
+  if(!ts.length && !mine) return "";
+  const lo = ts.length?taskPrice(ts[0],c.settings):0, hi = ts.length?taskPrice(ts[ts.length-1],c.settings):0;
+  const meta = ts.length?`${ts.length} task${ts.length>1?"s":""} · ${fmt(lo)}${lo!==hi?"–"+fmt(hi):""}`:"No tasks yet — tap to add";
+  /* A search shows every task it matched, however many. Hiding a hit behind
+     "Show all" would make this worse than the list it replaces. */
+  const hits = q ? ts.filter(t=>t.name.toLowerCase().includes(q)) : [];
+  const src  = hits.length ? hits : ts;
+  const all  = hits.length || bookOpen[k];
+  const cut  = all ? src : src.slice(0, BOOK_SHOW);
+  const left = src.length - cut.length;
+  return `<div class="bk-wrap${mine?" bk-mine":""}">
+    <button class="job-card" onclick="openGroup('${k}')">${showCat?`<span class="jc-cat"${mine?' style="color:#4f46e5"':""}>${esc(g.cat)}</span>`:""}<span class="jc-name">${bookMark(g.label,q)}</span><span class="jc-meta">${meta}${mine?' · <b style="color:#4f46e5">yours</b>':""}</span></button>
+    ${cut.length?`<ul class="bk-tasks${hits.length?" bk-hit":""}">${cut.map(t=>`<li onclick="openTaskEdit('${t.id}',null)"><span class="bk-tn">${bookMark(t.name,q)}</span><span class="bk-tp">${fmt(taskPrice(t,c.settings))}</span></li>`).join("")}</ul>`:""}
+    ${left>0?`<button class="bk-more" onclick="bookToggle('${k}')">Show all ${src.length} ↓</button>`:((bookOpen[k]&&!hits.length&&src.length>BOOK_SHOW)?`<button class="bk-more" onclick="bookToggle('${k}')">Show fewer ↑</button>`:"")}
   </div>`;
+}
+
+function bookBody(groupsInView, AG, c, q, customTasks){
+  const customCard = (bookCat==="All" && customTasks.length)
+    ? `<div class="bk-wrap"><button class="job-card" onclick="openGroup('custom')"><span class="jc-cat" style="color:#2e7d5b">Field-Built</span><span class="jc-name">Your Custom Tasks</span><span class="jc-meta">${customTasks.length} task${customTasks.length>1?"s":""}</span></button></div>`
+    : "";
+  /* One flat grid while searching or inside a single category. The bands are
+     a way through 23 groups, and neither of those is looking at 23. */
+  if(q || bookCat!=="All"){
+    const cards = groupsInView.map(k=>bookCard(k,AG,c,q,true)).join("");
+    if(!cards && !customCard) return `<p class="mini" style="padding:18px 2px">Nothing matches. Searched every group and all ${c.book.length} task names.</p>`;
+    return `<div class="job-grid">${cards}${customCard}</div>`;
+  }
+  const cats = Array.from(new Set(groupsInView.map(k=>AG[k].cat)));
+  const bands = cats.map(ct=>{
+    const inCat = groupsInView.filter(k=>AG[k].cat===ct);
+    const cards = inCat.map(k=>bookCard(k,AG,c,q,false)).join("");
+    if(!cards) return "";
+    const shown = inCat.filter(k=>groupTasks(k).length||isCustomGroup(k));
+    const n = shown.reduce((a,k)=>a+groupTasks(k).length,0);
+    return `<section class="bk-band"><div class="bk-bandhead"><h3>${esc(ct)}</h3><i>${shown.length} group${shown.length>1?"s":""} · ${n} task${n===1?"":"s"}</i></div><div class="job-grid">${cards}</div></section>`;
+  }).join("");
+  return bands + (customCard?`<section class="bk-band"><div class="bk-bandhead"><h3>Field-Built</h3><i>built on a job</i></div><div class="job-grid">${customCard}</div></section>`:"");
 }
 /* ---- create / manage custom job groups (stored in settings.groups so they sync) ---- */
 function newJobGroup(){
