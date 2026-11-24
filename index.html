@@ -1612,21 +1612,42 @@ function saveCustomTask(){
 /* ================= VIEW: PRICE BOOK ================= */
 let bookCat='All', bookSearch='';
 function isCustomGroup(k){ const c=co(); return !!(c.settings.groups&&c.settings.groups[k]); }
-function renderBook(){
-  const c=co(); const AG=allGroups();
-  const cats=['All',...Array.from(new Set(Object.values(AG).map(g=>g.cat)))];
-  const q=bookSearch.toLowerCase();
-  const groupsInView=Object.keys(AG).filter(k=>{
+function bookGroupsInView(AG, q){
+  return Object.keys(AG).filter(k=>{
     const g=AG[k]; if(bookCat!=='All'&&g.cat!==bookCat)return false;
     if(q&&!(g.label.toLowerCase().includes(q)||g.cat.toLowerCase().includes(q)||groupTasks(k).some(t=>t.name.toLowerCase().includes(q))))return false;
     return true;
   });
+}
+
+/* Redraw the cards only, never the whole screen.
+
+   Keith, 24 Nov 2026: "when searching at the top, itll only let me enter 1
+   letter at a time then freezes." The search box used to rebuild the entire
+   view on every keystroke, which throws away the very input element being
+   typed into — so the caret lands nowhere and the next letter goes missing.
+   It was always written that way; listing the tasks gave it enough work to
+   do that it became obvious.
+
+   Everything below #bookBody is replaced; the box, the buttons and the
+   category pills above it are left alone, so focus and the caret survive. */
+function bookRefresh(){
+  const el = document.getElementById("bookBody"); if(!el) return;
+  const c = co(), AG = allGroups(), q = bookSearch.toLowerCase();
+  el.innerHTML = bookBody(bookGroupsInView(AG, q), AG, c, q, c.book.filter(t=>t.g==='custom'));
+}
+
+function renderBook(){
+  const c=co(); const AG=allGroups();
+  const cats=['All',...Array.from(new Set(Object.values(AG).map(g=>g.cat)))];
+  const q=bookSearch.toLowerCase();
+  const groupsInView=bookGroupsInView(AG, q);
   // include a 'custom' bucket
   const customTasks=c.book.filter(t=>t.g==='custom');
   return `
-  <div class="page-head"><h2>Price Book</h2><p>${c.book.length} tasks across your job groups. Real Profit Rhino prices — plus anything you build in the field.</p></div>
+  <div class="page-head"><h2>Price Book</h2><p>${c.book.length} tasks across your job groups, plus anything you build in the field.</p></div>
   <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px">
-    <input placeholder="Search groups and tasks…" value="${esc(bookSearch)}" oninput="bookSearch=this.value;document.getElementById('view').innerHTML=renderBook()" style="flex:1;min-width:200px;padding:12px 14px;border:1.5px solid var(--line);border-radius:11px">
+    <input placeholder="Search groups and tasks…" value="${esc(bookSearch)}" oninput="bookSearch=this.value;bookRefresh()" style="flex:1;min-width:200px;padding:12px 14px;border:1.5px solid var(--line);border-radius:11px">
     <button id="hideCostBtn" class="btn btn-ghost btn-sm" title="Hides your cost everywhere in the book so the phone can be turned round" onclick="toggleHideCost()">${hideCostOn()?'Cost hidden':'Hide cost'}</button> <button class="btn btn-ghost btn-sm" onclick="manageCategories()">Categories</button>
     <button class="btn btn-ghost btn-sm" onclick="newJobGroup()">${ICO.plus} New job group</button>
     <button class="btn btn-red btn-sm" onclick="openCustomTask('',null)">${ICO.plus} Build a task</button>
@@ -1654,7 +1675,7 @@ function renderBook(){
    decides what a line costs.                                              */
 const BOOK_SHOW = 5;
 let bookOpen = {};
-function bookToggle(k){ bookOpen[k] = !bookOpen[k]; document.getElementById("view").innerHTML = renderBook(); }
+function bookToggle(k){ bookOpen[k] = !bookOpen[k]; bookRefresh(); }
 
 function bookMark(text, q){
   const s = esc(text); if(!q) return s;
