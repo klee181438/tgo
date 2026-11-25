@@ -1700,7 +1700,7 @@ function bookCard(k, AG, c, q, showCat){
   const left = src.length - cut.length;
   return `<div class="bk-wrap${mine?" bk-mine":""}">
     <button class="job-card" onclick="openGroup('${k}')">${showCat?`<span class="jc-cat"${mine?' style="color:#4f46e5"':""}>${esc(g.cat)}</span>`:""}<span class="jc-name">${bookMark(g.label,q)}</span><span class="jc-meta">${meta}${mine?' · <b style="color:#4f46e5">yours</b>':""}</span></button>
-    ${cut.length?`<ul class="bk-tasks${hits.length?" bk-hit":""}">${cut.map(t=>`<li onclick="openTaskEdit('${t.id}',null)"><span class="bk-tn">${bookMark(t.name,q)}</span><span class="bk-tp">${fmt(taskPrice(t,c.settings))}</span></li>`).join("")}</ul>`:""}
+    ${cut.length?`<ul class="bk-tasks${hits.length?" bk-hit":""}">${cut.map(t=>`<li onclick="openPresent('${t.id}')"><span class="bk-tn">${bookMark(t.name,q)}</span><span class="bk-tp">${fmt(taskPrice(t,c.settings))}</span></li>`).join("")}</ul>`:""}
     ${left>0?`<button class="bk-more" onclick="bookToggle('${k}')">Show all ${src.length} ↓</button>`:((bookOpen[k]&&!hits.length&&src.length>BOOK_SHOW)?`<button class="bk-more" onclick="bookToggle('${k}')">Show fewer ↑</button>`:"")}
   </div>`;
 }
